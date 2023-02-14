@@ -132,7 +132,6 @@ var parsejson = Fix(
 			func(arr []JSONNode) JSONNode {
 				return Array(arr)
 			},
-
 			Wrap(Rune('['), SepBy(Rune(','), json), Rune(']')),
 		)
 
