@@ -20,7 +20,7 @@ type Scanner struct {
 	input string // the string being lexed
 	start int    // location of the end of the last emitted token
 	pos   int    // current position of the lexer in the input
-	width []int  // width history of read but unemitted runes from the input
+	width []int  // width history of read but un-emitted runes from the input
 	line  int    // current line number within the source input
 }
 
