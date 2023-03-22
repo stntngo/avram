@@ -6,12 +6,13 @@ import (
 	"go.uber.org/multierr"
 )
 
-// Or runs `p` and returns the result if it succeds.
+// Or runs `p` and returns the result if it succeeds.
 // If `p` fails, the input will be reset and `q` will
 // run instead.
 func Or[A any](p Parser[A], q Parser[A]) Parser[A] {
+	tp := Try(p)
 	return Try(func(s *Scanner) (A, error) {
-		res, err1 := Try(p)(s)
+		res, err1 := tp(s)
 		if err1 == nil {
 			return res, nil
 		}

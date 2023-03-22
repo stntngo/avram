@@ -45,6 +45,24 @@ func Try[A any](p Parser[A]) Parser[A] {
 	}
 }
 
+// Maybe constructs a new parser that will attempt to parse the input
+// using the provided parser `p`. If the parser is successful, it will
+// return a pointer to the parsed value. If the parse is unsuccessful it
+// will return a nil pointer in a poor imitation of an Optional type.
+//
+// Maybe parsers can never fail.
+func Maybe[A any](p Parser[A]) Parser[*A] {
+	tp := Try(p)
+	return func(s *Scanner) (*A, error) {
+		out, err := tp(s)
+		if err != nil {
+			return nil, nil
+		}
+
+		return &out, nil
+	}
+}
+
 // LookAhead constructs a new parser that will apply the provided
 // parser `p` without consuming any input regardless of whether
 // `p` succeeds or fails.

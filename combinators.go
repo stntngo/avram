@@ -70,11 +70,12 @@ func Count[A any](n int, p Parser[A]) Parser[[]A] {
 // Many runs `p` zero or more times and returns a slice
 // of results from the runs of `p`.
 func Many[A any](p Parser[A]) Parser[[]A] {
+	tp := Try(p)
 	return func(s *Scanner) ([]A, error) {
 		var out []A
 
 		for {
-			val, err := Try(p)(s)
+			val, err := tp(s)
 			if err != nil {
 				return out, nil
 			}
@@ -140,7 +141,7 @@ func SkipMany1[A any](p Parser[A]) Parser[Unit] {
 	)
 }
 
-// Fix computes the fixpoint of `f` and runs the resultant parser.
+// Fix computes the fix-point of `f` and runs the resultant parser.
 // The argument that `f` receives is the result of `Fix(f)`, which
 // `f` must use to define `Fix(f)`.
 func Fix[A any](f func(Parser[A]) Parser[A]) Parser[A] {
