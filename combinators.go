@@ -160,3 +160,50 @@ func Fix[A any](f func(Parser[A]) Parser[A]) Parser[A] {
 
 	return r
 }
+
+// ChainL1 parses one or more occurrences of `p`, separated by `op`
+// and returns a value obtained by left associative application of
+// all functions returned by `op` to the values returned by `p`.
+//
+// This parser can be used to eliminate left recursion which typically
+// occurs in expression grammars.
+//
+// Example:
+//
+// ```
+//
+//	ParseExpression := Fix(func(expr Parser[int]) Parser[int] {
+//		ParseAdd := DiscardLeft(SkipWS(Rune('+')), Return(func(a, b int) int { return a + b }))
+//		ParseSub := DiscardLeft(SkipWS(Rune('-')), Return(func(a, b int) int { return a - b }))
+//		ParseMul := DiscardLeft(SkipWS(Rune('*')), Return(func(a, b int) int { return a * b }))
+//		ParseDiv := DiscardLeft(SkipWS(Rune('/')), Return(func(a, b int) int { return a / b }))
+//
+//		ParseInteger := Lift(
+//			Must(strconv.Atoi),
+//			TakeWhile1(Runes('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')),
+//		)
+//
+//		ParseFactor := Or(Wrap(Rune('('), expr, Rune(')')), ParseInteger)
+//		ParseTerm := ChainL1(ParseFactor, Or(ParseMul, ParseDiv))
+//
+//		return ChainL1(ParseTerm, Or(ParseAdd, ParseSub))
+//	})
+//
+// ```
+func ChainL1[A any](p Parser[A], op Parser[func(A, A) A]) Parser[A] {
+	var chain func(A) Parser[A]
+	chain = func(acc A) Parser[A] {
+		return Or(
+			Lift2(
+				func(f func(A, A) A, x A) A {
+					return f(acc, x)
+				},
+				op,
+				Bind(p, chain),
+			),
+			Return(acc),
+		)
+	}
+
+	return Bind(p, chain)
+}

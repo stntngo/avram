@@ -1,7 +1,9 @@
 package avram
 
 import (
+	"errors"
 	"fmt"
+	"io"
 )
 
 // Unit type.
@@ -12,9 +14,27 @@ type Unit struct{}
 // of combinators on Parsers of different types.
 type Parser[T any] func(*Scanner) (T, error)
 
+// EOF parser succeeds only at the end of the scanner input.
+func EOF(s *Scanner) (Unit, error) {
+	_, _, err := s.ReadRune()
+	if errors.Is(err, io.EOF) {
+		return Unit{}, nil
+	}
+
+	if err != nil {
+		return Unit{}, err
+	}
+
+	if err := s.UnreadRune(); err != nil {
+		return Unit{}, err
+	}
+
+	return Unit{}, errors.New("scanner is unexpectedly non-empty")
+}
+
 // Name associates `name` with parser `p` which will
 // be reported in the case of failure.
-func Name[A any](p Parser[A], name string) Parser[A] {
+func Name[A any](name string, p Parser[A]) Parser[A] {
 	return func(s *Scanner) (A, error) {
 		val, err := p(s)
 		if err != nil {
@@ -96,17 +116,15 @@ func Fail(err error) Parser[any] {
 // Bind creates a parser that will run `p`, pass its result to `f`
 // run the parser that `f` produces and return its result.
 func Bind[A, B any](p Parser[A], f func(A) Parser[B]) Parser[B] {
-	return Try(func(s *Scanner) (B, error) {
-		vala, err := p(s)
+	return func(s *Scanner) (B, error) {
+		val, err := p(s)
 		if err != nil {
 			var zero B
 			return zero, err
 		}
 
-		parserb := f(vala)
-
-		return parserb(s)
-	})
+		return f(val)(s)
+	}
 }
 
 // DiscardLeft runs `p`, discards its results and then runs `q`

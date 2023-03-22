@@ -29,6 +29,7 @@ func SkipWS[A any](p Parser[A]) Parser[A] {
 // Rune accepts r and returns it.
 func Rune(r rune) Parser[rune] {
 	return Name(
+		fmt.Sprintf("Match Rune: %q", r),
 		func(s *Scanner) (rune, error) {
 			o, _, err := s.ReadRune()
 			if err != nil {
@@ -42,7 +43,6 @@ func Rune(r rune) Parser[rune] {
 
 			return o, nil
 		},
-		fmt.Sprintf("Match Rune: %q", r),
 	)
 }
 
@@ -63,6 +63,7 @@ func Runes(rs ...rune) func(rune) bool {
 // matched rune.
 func NotRune(r rune) Parser[rune] {
 	return Name(
+		fmt.Sprintf("Not Rune: %q", r),
 		func(s *Scanner) (rune, error) {
 			o, _, err := s.ReadRune()
 			if err != nil {
@@ -76,7 +77,6 @@ func NotRune(r rune) Parser[rune] {
 
 			return o, nil
 		},
-		fmt.Sprintf("Not Rune: %q", r),
 	)
 }
 
@@ -98,7 +98,6 @@ func Satisfy(f func(rune) bool) Parser[rune] {
 		}
 
 		if !f(r) {
-			s.UnreadRune()
 			return -1, fmt.Errorf("%q does not satisfy predicate", r)
 		}
 
