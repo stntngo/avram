@@ -170,8 +170,6 @@ func Fix[A any](f func(Parser[A]) Parser[A]) Parser[A] {
 //
 // Example:
 //
-// ```
-//
 //	ParseExpression := Fix(func(expr Parser[int]) Parser[int] {
 //		ParseAdd := DiscardLeft(SkipWS(Rune('+')), Return(func(a, b int) int { return a + b }))
 //		ParseSub := DiscardLeft(SkipWS(Rune('-')), Return(func(a, b int) int { return a - b }))
@@ -188,8 +186,6 @@ func Fix[A any](f func(Parser[A]) Parser[A]) Parser[A] {
 //
 //		return ChainL1(ParseTerm, Or(ParseAdd, ParseSub))
 //	})
-//
-// ```
 func ChainL1[A any](p Parser[A], op Parser[func(A, A) A]) Parser[A] {
 	var chain func(A) Parser[A]
 	chain = func(acc A) Parser[A] {
