@@ -191,3 +191,21 @@ func Consumed[A any](p Parser[A]) Parser[string] {
 		return s.input[start:s.pos], nil
 	}
 }
+
+// Position parser returns the current source position.
+func Position(s *Scanner) (int, error) {
+	return s.pos, nil
+}
+
+// Input parser returns the untouched, unconsumed input text
+// associated with the Scanner.
+func Input(s *Scanner) (string, error) {
+	return s.input, nil
+}
+
+// Remaining parser returns the remaining input text
+// associated with the Scanner that has yet to be
+// consumed.
+func Remaining(s *Scanner) (string, error) {
+	return s.input[s.pos:], nil
+}
