@@ -3,6 +3,7 @@ package avram
 import (
 	"fmt"
 	"regexp"
+	"unicode"
 )
 
 // Match accepts the target regex and returns it.
@@ -19,11 +20,31 @@ func MatchString(target string) Parser[string] {
 	})
 }
 
+// Space parses a single valid unicode whitespace
+var Space = Satisfy(unicode.IsSpace)
+
 // SkipWS ignores any whitespace surrounding
 // the value associated with p.
 func SkipWS[A any](p Parser[A]) Parser[A] {
-	ws := Match(regexp.MustCompile(`\s`))
-	return Wrap(Option("", ws), p, Option("", ws))
+	return Wrap(SkipMany(Space), p, SkipMany(Space))
+}
+
+// TrailingWS ignores all whitespace following
+// the data parsed by the parser p.
+//
+// There must be at least one instance of valid
+// whitespace following the parser p.
+func TrailingWS[A any](p Parser[A]) Parser[A] {
+	return DiscardRight(p, SkipMany1(Space))
+}
+
+// PrecedingWS ignores all whitespace before
+// the data parsed by the parser p.
+//
+// There must be at least one instance of valid
+// whitespace following the parser p.
+func PrecedingWS[A any](p Parser[A]) Parser[A] {
+	return DiscardLeft(SkipMany1(Space), p)
 }
 
 // Rune accepts r and returns it.
