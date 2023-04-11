@@ -89,9 +89,7 @@ func Many[A any](p Parser[A]) Parser[[]A] {
 // slice of results from the runs of `p`.
 func Many1[A any](p Parser[A]) Parser[[]A] {
 	return Lift2(
-		func(first A, rest []A) []A {
-			return append([]A{first}, rest...)
-		},
+		prepend[A],
 		p,
 		Many(p),
 	)
