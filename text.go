@@ -230,3 +230,28 @@ func Input(s *Scanner) (string, error) {
 func Remaining(s *Scanner) (string, error) {
 	return s.input[s.pos:], nil
 }
+
+// Finish ensures that the completed parser has successfully
+// parsed the entirety of the input string contained in the scanner.
+func Finish[A any](p Parser[A]) Parser[A] {
+	return func(s *Scanner) (A, error) {
+		parsed, err := p(s)
+		if err != nil {
+			var zero A
+			return zero, nil
+		}
+
+		if rem := s.Remaining(); len(rem) > 0 {
+			var zero A
+			return zero, fmt.Errorf("unparsed input: %q", rem)
+		}
+
+		return parsed, nil
+	}
+}
+
+func negate[T any](f func(T) bool) func(T) bool {
+	return func(t T) bool {
+		return !f(t)
+	}
+}

@@ -86,3 +86,7 @@ func (s *Scanner) MatchString(target string) (string, error) {
 
 	return target, nil
 }
+
+func (s *Scanner) Remaining() string {
+	return s.input[s.pos:]
+}
