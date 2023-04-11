@@ -176,10 +176,10 @@ func Fix[A any](f func(Parser[A]) Parser[A]) Parser[A] {
 //		ParseMul := DiscardLeft(SkipWS(Rune('*')), Return(func(a, b int) int { return a * b }))
 //		ParseDiv := DiscardLeft(SkipWS(Rune('/')), Return(func(a, b int) int { return a / b }))
 //
-//		ParseInteger := Lift(
-//			Must(strconv.Atoi),
+//		ParseInteger := result.Unwrap(Lift(
+//			result.Lift(strconv.Atoi),
 //			TakeWhile1(Runes('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')),
-//		)
+//		))
 //
 //		ParseFactor := Or(Wrap(Rune('('), expr, Rune(')')), ParseInteger)
 //		ParseTerm := ChainL1(ParseFactor, Or(ParseMul, ParseDiv))
@@ -202,4 +202,8 @@ func ChainL1[A any](p Parser[A], op Parser[func(A, A) A]) Parser[A] {
 	}
 
 	return Bind(p, chain)
+}
+
+func prepend[T any](first T, rest []T) []T {
+	return append([]T{first}, rest...)
 }

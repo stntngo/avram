@@ -13,7 +13,7 @@ type CSV struct {
 	rows   [][]string
 }
 
-var parsecsv = Fix(func(p Parser[CSV]) Parser[CSV] {
+var parsecsv = Finish(Fix(func(p Parser[CSV]) Parser[CSV] {
 	parsequoted := Wrap(
 		Rune('"'),
 		func(s *Scanner) (string, error) {
@@ -67,7 +67,7 @@ var parsecsv = Fix(func(p Parser[CSV]) Parser[CSV] {
 		parserow,
 		DiscardLeft(Rune('\n'), SepBy(Rune('\n'), parserow)),
 	)
-})
+}))
 
 const csvBody = `header_one,header_two,header_three,header four
 1,2,3

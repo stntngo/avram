@@ -68,7 +68,7 @@ func tointerface(n JSONNode) interface{} {
 	}
 }
 
-var parsejson = Fix(
+var parsejson = Finish(Fix(
 	func(json Parser[JSONNode]) Parser[JSONNode] {
 		parsenumber := Lift(
 			func(s string) Number {
@@ -169,7 +169,7 @@ var parsejson = Fix(
 			parseObject,
 		))
 	},
-)
+))
 
 func TestJSON(t *testing.T) {
 	for _, tt := range []struct {

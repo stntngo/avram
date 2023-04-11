@@ -26,7 +26,7 @@ type group struct {
 
 type lit int
 
-var parseExpr = Fix(func(parseExpr Parser[expr]) Parser[expr] {
+var parseExpr = Finish(Fix(func(parseExpr Parser[expr]) Parser[expr] {
 	parseLit := Lift(
 		func(r rune) expr {
 			return lit(r) - 48
@@ -56,7 +56,7 @@ var parseExpr = Fix(func(parseExpr Parser[expr]) Parser[expr] {
 		start,
 		end,
 	)
-})
+}))
 
 func TestLeftRecursion(t *testing.T) {
 	for _, tt := range []struct {

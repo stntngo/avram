@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	. "github.com/stntngo/avram"
+	"github.com/stntngo/avram/result"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -16,10 +17,10 @@ func TestComputeChain(t *testing.T) {
 		ParseMul := DiscardLeft(SkipWS(Rune('*')), Return(func(a, b int) int { return a * b }))
 		ParseDiv := DiscardLeft(SkipWS(Rune('/')), Return(func(a, b int) int { return a / b }))
 
-		ParseInteger := Lift(
-			Must(strconv.Atoi),
+		ParseInteger := result.Unwrap(Lift(
+			result.Lift(strconv.Atoi),
 			TakeWhile1(Runes('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')),
-		)
+		))
 
 		ParseFactor := Or(Wrap(Rune('('), expr, Rune(')')), ParseInteger)
 		ParseTerm := ChainL1(ParseFactor, Or(ParseMul, ParseDiv))
@@ -72,7 +73,7 @@ type BinaryExpression struct {
 type Integer int
 
 func TestASTChain(t *testing.T) {
-	ParseExpression := Fix(func(expr Parser[Expression]) Parser[Expression] {
+	ParseExpression := Finish(Fix(func(expr Parser[Expression]) Parser[Expression] {
 		ParseAdd := DiscardLeft(
 			SkipWS(Rune('+')),
 			Return(func(a, b Expression) Expression { return BinaryExpression{Add, a, b} }),
@@ -90,8 +91,8 @@ func TestASTChain(t *testing.T) {
 			Return(func(a, b Expression) Expression { return BinaryExpression{Div, a, b} }),
 		)
 
-		ParseInteger := Lift(
-			Must(func(s string) (Expression, error) {
+		ParseInteger := result.Unwrap(Lift(
+			result.Lift(func(s string) (Expression, error) {
 				i, err := strconv.Atoi(s)
 				if err != nil {
 					return nil, err
@@ -100,13 +101,13 @@ func TestASTChain(t *testing.T) {
 				return Integer(i), nil
 			}),
 			TakeWhile1(Runes('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')),
-		)
+		))
 
 		ParseFactor := Or(Wrap(Rune('('), expr, Rune(')')), ParseInteger)
 		ParseTerm := ChainL1(ParseFactor, Or(ParseMul, ParseDiv))
 
 		return ChainL1(ParseTerm, Or(ParseAdd, ParseSub))
-	})
+	}))
 
 	for _, tt := range []struct {
 		expr     string
