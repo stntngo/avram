@@ -19,6 +19,18 @@ func (r result[T]) Unwrap() (T, error) {
 	return r.value, r.err
 }
 
+// Flatten converts from Result[Result[T]] to Result[T].
+func Flatten[T any](res Result[Result[T]]) Result[T] {
+	out, err := res.Unwrap()
+	if err != nil {
+		return result[T]{
+			err: err,
+		}
+	}
+
+	return out
+}
+
 // UnwrapZero returns the default zero value of the type T
 // wrapped in the Result if the result holds an error,
 // otherwise UnwrapZero returns the wrapped value.
