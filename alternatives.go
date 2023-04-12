@@ -17,14 +17,14 @@ import (
 // wrap `q` in the Try meta-parser.
 func Or[A any](p Parser[A], q Parser[A]) Parser[A] {
 	return func(s *Scanner) (A, error) {
-		start := s.input
+		start := s.pos
 
 		res, err1 := p(s)
 		if err1 == nil {
 			return res, nil
 		}
 
-		if start != s.input {
+		if start != s.pos {
 			var zero A
 			return zero, err1
 		}
@@ -53,7 +53,7 @@ func Or[A any](p Parser[A], q Parser[A]) Parser[A] {
 // should wrap the provided parser with a Try meta-parser.
 func Choice[A any](msg string, ps ...Parser[A]) Parser[A] {
 	return func(s *Scanner) (A, error) {
-		start := s.input
+		start := s.pos
 
 		var errs error
 		for _, p := range ps {
@@ -64,7 +64,7 @@ func Choice[A any](msg string, ps ...Parser[A]) Parser[A] {
 
 			errs = multierr.Append(errs, err)
 
-			if start != s.input {
+			if start != s.pos {
 				break
 			}
 

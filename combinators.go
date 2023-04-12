@@ -188,13 +188,13 @@ func ChainL1[A any](p Parser[A], op Parser[func(A, A) A]) Parser[A] {
 	var chain func(A) Parser[A]
 	chain = func(acc A) Parser[A] {
 		return Or(
-			Lift2(
+			Try(Lift2(
 				func(f func(A, A) A, x A) A {
 					return f(acc, x)
 				},
 				op,
 				Bind(p, chain),
-			),
+			)),
 			Return(acc),
 		)
 	}

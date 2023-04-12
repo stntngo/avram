@@ -22,10 +22,10 @@ func TestComputeChain(t *testing.T) {
 			TakeWhile1(Runes('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')),
 		))
 
-		ParseFactor := Or(Wrap(Rune('('), expr, Rune(')')), ParseInteger)
-		ParseTerm := ChainL1(ParseFactor, Or(ParseMul, ParseDiv))
+		ParseFactor := Or(Try(Wrap(Rune('('), expr, Rune(')'))), ParseInteger)
+		ParseTerm := ChainL1(ParseFactor, Or(Try(ParseMul), ParseDiv))
 
-		return ChainL1(ParseTerm, Or(ParseAdd, ParseSub))
+		return ChainL1(ParseTerm, Or(Try(ParseAdd), ParseSub))
 	})
 
 	for _, tt := range []struct {
@@ -103,8 +103,8 @@ func TestASTChain(t *testing.T) {
 			TakeWhile1(Runes('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')),
 		))
 
-		ParseFactor := Or(Wrap(Rune('('), expr, Rune(')')), ParseInteger)
-		ParseTerm := ChainL1(ParseFactor, Or(ParseMul, ParseDiv))
+		ParseFactor := Or(Try(Wrap(Rune('('), expr, Rune(')'))), ParseInteger)
+		ParseTerm := ChainL1(ParseFactor, Or(Try(ParseMul), ParseDiv))
 
 		return ChainL1(ParseTerm, Or(ParseAdd, ParseSub))
 	}))
