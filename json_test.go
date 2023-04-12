@@ -41,14 +41,14 @@ func jsonify[T JSONNode](p Parser[T]) Parser[JSONNode] {
 	}
 }
 
-func tointerface(n JSONNode) interface{} {
+func tointerface(n JSONNode) any {
 	switch v := n.(type) {
 	case Number:
 		return float64(v)
 	case String:
 		return string(v)
 	case Array:
-		out := make([]interface{}, len(v))
+		out := make([]any, len(v))
 		for i, e := range v {
 			out[i] = tointerface(e)
 		}
@@ -57,7 +57,7 @@ func tointerface(n JSONNode) interface{} {
 	case Null:
 		return nil
 	case Object:
-		out := make(map[string]interface{})
+		out := make(map[string]any)
 		for key, value := range v {
 			out[string(key)] = tointerface(value)
 		}
@@ -175,7 +175,7 @@ func TestJSON(t *testing.T) {
 	for _, tt := range []struct {
 		name     string
 		raw      string
-		expected interface{}
+		expected any
 	}{
 		{
 			"simple string",
@@ -190,12 +190,12 @@ func TestJSON(t *testing.T) {
 		{
 			"simple array",
 			`[1, 2, 3, 4]`,
-			[]interface{}{1.0, 2.0, 3.0, 4.0},
+			[]any{1.0, 2.0, 3.0, 4.0},
 		},
 		{
 			"simple object",
 			`{"key_one": "value", "some_number": 10}`,
-			map[string]interface{}{
+			map[string]any{
 				"key_one":     "value",
 				"some_number": 10.0,
 			},
@@ -203,11 +203,11 @@ func TestJSON(t *testing.T) {
 		{
 			"complex nested types",
 			`{"test": ["abc123", 3.14, [4.5, "23"]], "two": null}`,
-			map[string]interface{}{
-				"test": []interface{}{
+			map[string]any{
+				"test": []any{
 					"abc123",
 					3.14,
-					[]interface{}{4.5, "23"},
+					[]any{4.5, "23"},
 				},
 				"two": nil,
 			},
