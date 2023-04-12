@@ -1,5 +1,9 @@
 # avram
 
+![GitHub go.mod Go version](https://img.shields.io/github/go-mod/go-version/stntngo/avram?style=flat-square)
+![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/stntngo/avram?include_prereleases&style=flat-square)
+[![GoDoc Reference](https://img.shields.io/badge/godoc-reference-5272B4.svg?style=flat-square)](https://pkg.go.dev/github.com/stntngo/avram)
+
 avram is a generic parser-combinator library inspired by the likes of [ocaml's Angstrom](https://github.com/inhabitedtype/angstrom) and [Haskell's Parsec](https://hackage.haskell.org/package/parsec) ported to Go and making use of Go's generic data types.
 
 avram is an early work in progress and has not been extensively performance profiled or tuned in any way. The initial goal of this project was to provide the comfortable developer ergonomics of angstrom within the Go ecosystem. The API is very similar to the angstrom API as a result, replacing ocaml's custom infix operators with traditional Go functions where required.
