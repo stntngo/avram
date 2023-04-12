@@ -8,16 +8,16 @@ import (
 
 // Match accepts the target regex and returns it.
 func Match(re *regexp.Regexp) Parser[string] {
-	return Try(func(s *Scanner) (string, error) {
+	return func(s *Scanner) (string, error) {
 		return s.Match(re)
-	})
+	}
 }
 
 // MatchString accepts the target string and returns it.
 func MatchString(target string) Parser[string] {
-	return Try(func(s *Scanner) (string, error) {
+	return func(s *Scanner) (string, error) {
 		return s.MatchString(target)
-	})
+	}
 }
 
 // Space parses a single valid unicode whitespace

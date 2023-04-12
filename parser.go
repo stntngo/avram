@@ -130,20 +130,20 @@ func Bind[A, B any](p Parser[A], f func(A) Parser[B]) Parser[B] {
 // DiscardLeft runs `p`, discards its results and then runs `q`
 // and returns its results.
 func DiscardLeft[A, B any](p Parser[A], q Parser[B]) Parser[B] {
-	return Try(func(s *Scanner) (B, error) {
+	return func(s *Scanner) (B, error) {
 		if _, err := p(s); err != nil {
 			var zero B
 			return zero, err
 		}
 
 		return q(s)
-	})
+	}
 }
 
 // DiscardRight runs `p`, then runs `q`, discards its results and
 // returns the initial result of `p`.
 func DiscardRight[A, B any](p Parser[A], q Parser[B]) Parser[A] {
-	return Try(func(s *Scanner) (A, error) {
+	return func(s *Scanner) (A, error) {
 		vala, err := p(s)
 		if err != nil {
 			var zero A
@@ -156,7 +156,7 @@ func DiscardRight[A, B any](p Parser[A], q Parser[B]) Parser[A] {
 		}
 
 		return vala, nil
-	})
+	}
 }
 
 // Wrap runs `left`, discards its results, runs `p`, runs `right`, discards its results,
