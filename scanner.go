@@ -108,3 +108,22 @@ func (s *Scanner) MatchString(target string) (string, error) {
 func (s *Scanner) Remaining() string {
 	return s.input[s.pos:]
 }
+
+// Finish meta-parser ensures that the completed parser has successfully
+// parsed the entirety of the input string contained in the scanner.
+func Finish[A any](p Parser[A]) Parser[A] {
+	return func(s *Scanner) (A, error) {
+		parsed, err := p(s)
+		if err != nil {
+			var zero A
+			return zero, err
+		}
+
+		if rem := s.Remaining(); len(rem) > 0 {
+			var zero A
+			return zero, fmt.Errorf("unparsed input: %q", rem)
+		}
+
+		return parsed, nil
+	}
+}
