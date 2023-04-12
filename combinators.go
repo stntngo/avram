@@ -35,14 +35,14 @@ func Both[A, B any](p Parser[A], q Parser[B]) Parser[Pair[A, B]] {
 // of results of each `p`.
 func List[A any](ps []Parser[A]) Parser[[]A] {
 	return func(s *Scanner) ([]A, error) {
-		var out []A
-		for _, p := range ps {
+		out := make([]A, len(ps))
+		for i, p := range ps {
 			val, err := p(s)
 			if err != nil {
 				return nil, err
 			}
 
-			out = append(out, val)
+			out[i] = val
 		}
 
 		return out, nil
