@@ -182,12 +182,38 @@ func TestManyTill(t *testing.T) {
 		err      error
 	}{
 		{
-			"simple",
-			"inputitt",
-			av.Satisfy(av.Runes('i', 'n', 'p', 'u', 't')),
-			av.MatchString("tt"),
-			[]rune{'i', 'n', 'p', 'u', 't', 'i'},
+			"simple match in string",
+			"abcdef",
+			av.Satisfy(av.Runes('a', 'b', 'c')),
+			av.MatchString("def"),
+			[]rune("abc"),
 			nil,
+		},
+		{
+			"p and e overlap",
+			"abcabcdef",
+			av.Satisfy(av.Runes('a', 'b', 'c', 'd', 'e')),
+			av.MatchString("def"),
+			[]rune("abcabc"),
+			nil,
+		},
+		{
+			"partial match in string",
+			"abcdeabcdef",
+			av.Satisfy(av.Runes('a', 'b', 'c', 'd', 'e')),
+			av.MatchString("def"),
+			[]rune("abcdeabc"),
+			nil,
+		},
+		{
+			"return error",
+			"abcdeabcdef",
+			func(s *av.Scanner) (rune, error) {
+				return -1, errors.New("encountered error")
+			},
+			av.MatchString("def"),
+			nil,
+			errors.New("encountered error"),
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
