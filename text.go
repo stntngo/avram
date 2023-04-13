@@ -49,22 +49,15 @@ func PrecedingWS[A any](p Parser[A]) Parser[A] {
 
 // Rune accepts r and returns it.
 func Rune(r rune) Parser[rune] {
-	return Name(
-		fmt.Sprintf("Match Rune: %q", r),
-		func(s *Scanner) (rune, error) {
-			o, _, err := s.ReadRune()
-			if err != nil {
-				return -1, err
+	return func(s *Scanner) (rune, error) {
+		return s.MatchRune(func(o rune) error {
+			if r != o {
+				return fmt.Errorf("expected %q", r)
 			}
 
-			if o != r {
-				s.UnreadRune()
-				return -1, fmt.Errorf("%q does not match target of %q", o, r)
-			}
-
-			return o, nil
-		},
-	)
+			return nil
+		})
+	}
 }
 
 // Runes checks whether a rune `r` is within the provided set of `rs`.
@@ -83,22 +76,15 @@ func Runes(rs ...rune) func(rune) bool {
 // NotRune accepts any rune that is not r and returns the
 // matched rune.
 func NotRune(r rune) Parser[rune] {
-	return Name(
-		fmt.Sprintf("Not Rune: %q", r),
-		func(s *Scanner) (rune, error) {
-			o, _, err := s.ReadRune()
-			if err != nil {
-				return -1, err
+	return func(s *Scanner) (rune, error) {
+		return s.MatchRune(func(o rune) error {
+			if r == o {
+				return fmt.Errorf("unexpected %q", r)
 			}
 
-			if o == r {
-				s.UnreadRune()
-				return -1, fmt.Errorf("%q matches target of %q", o, r)
-			}
-
-			return o, nil
-		},
-	)
+			return nil
+		})
+	}
 }
 
 // AnyRune accepts any rune and returns it.
@@ -113,16 +99,13 @@ func AnyRune(s *Scanner) (rune, error) {
 // parser will fail indicating the offending character.
 func Satisfy(f func(rune) bool) Parser[rune] {
 	return func(s *Scanner) (rune, error) {
-		r, _, err := s.ReadRune()
-		if err != nil {
-			return -1, err
-		}
+		return s.MatchRune(func(r rune) error {
+			if !f(r) {
+				return fmt.Errorf("rune %q does not match required predicate", r)
+			}
 
-		if !f(r) {
-			return -1, fmt.Errorf("%q does not satisfy predicate", r)
-		}
-
-		return r, nil
+			return nil
+		})
 	}
 }
 
@@ -148,19 +131,7 @@ func SkipWhile(f func(rune) bool) Parser[Unit] {
 // Take accepts exactly n characters of input and
 // returns them as a string.
 func Take(n int) Parser[string] {
-	return func(s *Scanner) (string, error) {
-		var out string
-		for i := 0; i < n; i++ {
-			r, _, err := s.ReadRune()
-			if err != nil {
-				return "", err
-			}
-
-			out += string(r)
-		}
-
-		return out, nil
-	}
+	return Consumed(Count(n, AnyRune))
 }
 
 // TakeWhile accepts input as long as f returns true
@@ -170,12 +141,7 @@ func Take(n int) Parser[string] {
 // returns false on the first character, it will
 // return an empty string.
 func TakeWhile(f func(rune) bool) Parser[string] {
-	return Lift(
-		func(rs []rune) string {
-			return string(rs)
-		},
-		Many(Satisfy(f)),
-	)
+	return Consumed(Many(Satisfy(f)))
 }
 
 // TakeWhile1 accepts input as long as f returns true
@@ -185,12 +151,7 @@ func TakeWhile(f func(rune) bool) Parser[string] {
 // one character of input and will fail if it does
 // not.
 func TakeWhile1(f func(rune) bool) Parser[string] {
-	return Lift(
-		func(rs []rune) string {
-			return string(rs)
-		},
-		Many1(Satisfy(f)),
-	)
+	return Consumed(Many1(Satisfy(f)))
 }
 
 // TakeTill accepts input as long as f returns false and

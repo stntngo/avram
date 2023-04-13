@@ -1,9 +1,7 @@
 package avram
 
 import (
-	"errors"
 	"fmt"
-	"io"
 )
 
 // Unit type.
@@ -13,24 +11,6 @@ type Unit struct{}
 // type T. Higher order parsers are constructed through application
 // of combinators on Parsers of different types.
 type Parser[T any] func(*Scanner) (T, error)
-
-// EOF parser succeeds only at the end of the scanner input.
-func EOF(s *Scanner) (Unit, error) {
-	_, _, err := s.ReadRune()
-	if errors.Is(err, io.EOF) {
-		return Unit{}, nil
-	}
-
-	if err != nil {
-		return Unit{}, err
-	}
-
-	if err := s.UnreadRune(); err != nil {
-		return Unit{}, err
-	}
-
-	return Unit{}, errors.New("scanner is unexpectedly non-empty")
-}
 
 // Name associates `name` with parser `p` which will
 // be reported in the case of failure.

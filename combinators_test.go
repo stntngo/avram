@@ -172,6 +172,36 @@ func TestCount(t *testing.T) {
 	}
 }
 
+func TestManyTill(t *testing.T) {
+	for _, tt := range []struct {
+		name     string
+		input    string
+		p        av.Parser[rune]
+		till     av.Parser[string]
+		expected []rune
+		err      error
+	}{
+		{
+			"simple",
+			"inputitt",
+			av.Satisfy(av.Runes('i', 'n', 'p', 'u', 't')),
+			av.MatchString("tt"),
+			[]rune{'i', 'n', 'p', 'u', 't', 'i'},
+			nil,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			scanner := av.NewScanner(tt.input)
+
+			manytill := av.Finish(av.ManyTill(tt.p, tt.till))
+			res, err := manytill(scanner)
+
+			assert.Equal(t, tt.expected, res)
+			assert.Equal(t, tt.err, err)
+		})
+	}
+}
+
 func TestMaybe(t *testing.T) {
 	for _, tt := range []struct {
 		name     string

@@ -6,6 +6,8 @@ import (
 	"io"
 	"regexp"
 	"unicode/utf8"
+
+	"go.uber.org/multierr"
 )
 
 const eof = -1
@@ -70,6 +72,9 @@ func (s *Scanner) UnreadRune() error {
 // location of the scanner, returning the first matched
 // instance of the regex as a string if a match is found and
 // an error otherwise.
+//
+// NOTE: Match only advances the scanner position if a valid
+// match is successfully found.
 func (s *Scanner) Match(re *regexp.Regexp) (string, error) {
 	start := s.pos
 
@@ -89,19 +94,44 @@ func (s *Scanner) Match(re *regexp.Regexp) (string, error) {
 // MatchString attempts to match the provided target string
 // rune-by-rune exactly as specified, returning the target string
 // if matched or an error if it was unable to match the string.
+//
+// NOTE: MatchString only advances the scanner position if a valid
+// match is successfully found.
 func (s *Scanner) MatchString(target string) (string, error) {
+	checkpoint := s.pos
+
 	for _, r := range target {
 		o, _, err := s.ReadRune()
 		if err != nil {
+			s.pos = checkpoint
 			return "", err
 		}
 
 		if r != o {
+			s.pos = checkpoint
 			return "", fmt.Errorf("scanner does not contain %q at position %v", target, s.pos)
 		}
 	}
 
 	return target, nil
+}
+
+// MatchRune attempts to match the provided predicate function
+// with the next rune in the scanner's input stream.
+//
+// NOTE: MatchRune only advances the scanner position if a valid
+// match is successfully found.
+func (s *Scanner) MatchRune(match func(rune) error) (r rune, err error) {
+	r, _, err = s.ReadRune()
+	if err != nil {
+		return -1, err
+	}
+
+	if err := match(r); err != nil {
+		return -1, multierr.Append(err, s.UnreadRune())
+	}
+
+	return r, nil
 }
 
 // Remaining returns the remaining unread portion of the input string.
