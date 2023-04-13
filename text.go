@@ -6,10 +6,10 @@ import (
 	"unicode"
 )
 
-// Match accepts the target regex and returns it.
-func Match(re *regexp.Regexp) Parser[string] {
+// MatchRegexp accepts the target regex and returns it.
+func MatchRegexp(re *regexp.Regexp) Parser[string] {
 	return func(s *Scanner) (string, error) {
-		return s.Match(re)
+		return s.MatchRegexp(re)
 	}
 }
 

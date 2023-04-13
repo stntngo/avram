@@ -80,7 +80,7 @@ var parsejson = Finish(Fix(
 				return Number(f)
 			},
 
-			Match(regexp.MustCompile(`[-+]?([0-9]*\.[0-9]+|[0-9]+)`)),
+			MatchRegexp(regexp.MustCompile(`[-+]?([0-9]*\.[0-9]+|[0-9]+)`)),
 		)
 
 		parsenull := DiscardLeft(MatchString("null"), Return(Null{}))

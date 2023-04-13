@@ -68,14 +68,14 @@ func (s *Scanner) UnreadRune() error {
 	return nil
 }
 
-// Match attempts to match the provided regex from the current
+// MatchRegexp attempts to match the provided regex from the current
 // location of the scanner, returning the first matched
 // instance of the regex as a string if a match is found and
 // an error otherwise.
 //
-// NOTE: Match only advances the scanner position if a valid
+// NOTE: MatchRegexp only advances the scanner position if a valid
 // match is successfully found.
-func (s *Scanner) Match(re *regexp.Regexp) (string, error) {
+func (s *Scanner) MatchRegexp(re *regexp.Regexp) (string, error) {
 	start := s.pos
 
 	m := re.FindReaderIndex(s)
