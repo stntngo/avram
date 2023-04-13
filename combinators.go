@@ -98,12 +98,22 @@ func Many1[A any](p Parser[A]) Parser[[]A] {
 // ManyTill runs parser `p` zero ore more times until action `e`
 // succeeds and returns the slice of results from the runs of `p`.
 func ManyTill[A, B any](p Parser[A], e Parser[B]) Parser[[]A] {
-	return Fix(func(m Parser[[]A]) Parser[[]A] {
-		return Or(
-			DiscardLeft(e, Return([]A{})),
-			Lift2(prepend[A], p, m),
-		)
-	})
+	return func(s *Scanner) ([]A, error) {
+		var acc []A
+		for {
+			_, err := e(s)
+			if err == nil {
+				return acc, nil
+			}
+
+			el, err := p(s)
+			if err != nil {
+				return nil, err
+			}
+
+			acc = append(acc, el)
+		}
+	}
 }
 
 // SepBy runs `p` zero or more times, interspersing runs of `s` in between.
