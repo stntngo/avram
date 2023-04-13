@@ -22,7 +22,24 @@ func NewScanner(input string) *Scanner {
 
 // Scanner is responsible for maintaining the iterative state through
 // which the constructed parser moves.
+//
+// Scanner exposes three matching primitives for the parsers to use:
+//
+// 1. MatchRegexp - Matching on compiled regular expressions
+// 2. MatchString - Matching on concrete strings
+// 3. MatchRune   - Matching on an individual rune
+//
+// Each of these matching methods can potentially advance the state of the
+// the scanner along the input if they successfully find a match given
+// the provided matching criteria.
+//
+// If no match is found in any of these matching primitives, the state
+// of the scanner is not advanced.
 type Scanner struct {
+	// OPTIM: (niels) Use something more nuanced like an io.RuneScanner
+	// that we track the position of as we read / unread runes rather
+	// than requiring the full string to be available before beginning
+	// to scan the input.
 	input string // the string being lexed
 	start int    // location of the end of the last emitted token
 	pos   int    // current position of the lexer in the input
@@ -31,6 +48,7 @@ type Scanner struct {
 }
 
 // ReadRune reads a single rune from the input text.
+//
 // This method implements the io.RuneReader interface.
 func (s *Scanner) ReadRune() (rune, int, error) {
 	if int(s.pos) >= len(s.input) {
@@ -53,6 +71,7 @@ func (s *Scanner) ReadRune() (rune, int, error) {
 
 // UnreadRune unreads the last read rune, the next call
 // to ReadRune will return the just unread rune.
+//
 // This method implements the io.RuneScanner interface along
 // with ReadRune.
 func (s *Scanner) UnreadRune() error {
