@@ -99,10 +99,12 @@ func (s *Scanner) MatchRegexp(re *regexp.Regexp) (string, error) {
 
 	m := re.FindReaderIndex(s)
 	if m == nil {
+		s.pos = start
 		return "", fmt.Errorf("scanner does not match %q at position %v", re.String(), start)
 	}
 
 	if m[0] != 0 {
+		s.pos = start
 		return "", fmt.Errorf("scanner does not match %q at position %v", re.String(), start)
 	}
 
