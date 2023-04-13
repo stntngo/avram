@@ -119,7 +119,7 @@ func ManyTill[A, B any](p Parser[A], e Parser[B]) Parser[[]A] {
 // SepBy runs `p` zero or more times, interspersing runs of `s` in between.
 func SepBy[A, B any](s Parser[A], p Parser[B]) Parser[[]B] {
 	return Or(
-		Lift2(prepend[B], p, Many(DiscardLeft(s, p))),
+		SepBy1(s, p),
 		Return([]B{}),
 	)
 }
