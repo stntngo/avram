@@ -12,6 +12,12 @@ type Unit struct{}
 // of combinators on Parsers of different types.
 type Parser[T any] func(*Scanner) (T, error)
 
+// ParseString parses the input string with the parser `p`
+// constructing a new scanner as necessary.
+func ParseString[A any](input string, p Parser[A]) (A, error) {
+	return p(NewScanner(input))
+}
+
 // Name associates `name` with parser `p` which will
 // be reported in the case of failure.
 func Name[A any](name string, p Parser[A]) Parser[A] {

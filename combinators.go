@@ -169,8 +169,8 @@ func Fix[A any](f func(Parser[A]) Parser[A]) Parser[A] {
 	return r
 }
 
-// ChainL1 parses one or more occurrences of `p`, separated by `op`
-// and returns a value obtained by left associative application of
+// ChainR1 parses one or more occurrences of `p`, separated by `op`
+// and returns a value obtained by right associative application of
 // all functions returned by `op` to the values returned by `p`.
 //
 // This parser can be used to eliminate left recursion which typically
@@ -190,11 +190,11 @@ func Fix[A any](f func(Parser[A]) Parser[A]) Parser[A] {
 //		))
 //
 //		ParseFactor := Or(Wrap(Rune('('), expr, Rune(')')), ParseInteger)
-//		ParseTerm := ChainL1(ParseFactor, Or(ParseMul, ParseDiv))
+//		ParseTerm := ChainR1(ParseFactor, Or(ParseMul, ParseDiv))
 //
-//		return ChainL1(ParseTerm, Or(ParseAdd, ParseSub))
+//		return ChainR1(ParseTerm, Or(ParseAdd, ParseSub))
 //	})
-func ChainL1[A any](p Parser[A], op Parser[func(A, A) A]) Parser[A] {
+func ChainR1[A any](p Parser[A], op Parser[func(A, A) A]) Parser[A] {
 	var chain func(A) Parser[A]
 	chain = func(acc A) Parser[A] {
 		return Or(
@@ -210,6 +210,34 @@ func ChainL1[A any](p Parser[A], op Parser[func(A, A) A]) Parser[A] {
 	}
 
 	return Bind(p, chain)
+}
+
+// ChainL1 parses one or more occurrences of `p`, separated by `op`
+// and returns a value obtained by left associative application of
+// all functions returned by `op` to the values returned by `p`.
+//
+// This parser can be used to eliminate left recursion which typically
+// occurs in expression grammars.
+//
+// See ChainR1 for example.
+func ChainL1[A any](p Parser[A], op Parser[func(A, A) A]) Parser[A] {
+	next := Try(Both(op, p))
+	return func(s *Scanner) (A, error) {
+		value, err := p(s)
+		if err != nil {
+			var zero A
+			return zero, err
+		}
+
+		for {
+			x, err := next(s)
+			if err != nil {
+				return value, nil
+			}
+
+			value = x.Left(value, x.Right)
+		}
+	}
 }
 
 func prepend[T any](first T, rest []T) []T {

@@ -73,6 +73,19 @@ func Runes(rs ...rune) func(rune) bool {
 	}
 }
 
+// Range accepts any rune r between lo and hi
+func Range(lo, hi rune) Parser[rune] {
+	return func(s *Scanner) (rune, error) {
+		return s.MatchRune(func(r rune) error {
+			if lo > r || r > hi {
+				return fmt.Errorf("rune %q not between %q and %q", r, lo, hi)
+			}
+
+			return nil
+		})
+	}
+}
+
 // NotRune accepts any rune that is not r and returns the
 // matched rune.
 func NotRune(r rune) Parser[rune] {

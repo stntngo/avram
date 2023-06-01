@@ -2,10 +2,13 @@ package avram_test
 
 import (
 	"errors"
+	"strconv"
 	"testing"
 
 	av "github.com/stntngo/avram"
+	"github.com/stntngo/avram/result"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestOption(t *testing.T) {
@@ -257,6 +260,96 @@ func TestMaybe(t *testing.T) {
 
 			assert.Equal(t, tt.expected, res)
 			assert.NoError(t, err)
+		})
+	}
+}
+
+func TestChainL1(t *testing.T) {
+	parser := av.Finish(av.ChainL1(
+		result.Unwrap(av.Lift(
+			result.Lift(strconv.Atoi),
+			av.Consumed(av.Many1(av.Range('0', '9'))),
+		)),
+		av.Or(
+			av.Try(av.DiscardLeft(av.Rune('+'), av.Return(func(a, b int) int { return a + b }))),
+			av.DiscardLeft(av.Rune('*'), av.Return(func(a, b int) int { return a * b })),
+		),
+	))
+
+	for _, tt := range []struct {
+		name     string
+		input    string
+		expected int
+	}{
+		{
+			"addition chain",
+			"1+2+3+4+5",
+			15,
+		},
+		{
+			"multiplication chain",
+			"2*3*4*5",
+			120,
+		},
+		{
+			"multiplication / addition mix (no order of operations)",
+			"1+2*3+4",
+			// (1 + 2) * 3 + 4
+			// (3 * 3) + 4
+			// (9 + 4)
+			// 13
+			13,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := av.ParseString(tt.input, parser)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
+func TestChainR1(t *testing.T) {
+	parser := av.Finish(av.ChainR1(
+		result.Unwrap(av.Lift(
+			result.Lift(strconv.Atoi),
+			av.Consumed(av.Many1(av.Range('0', '9'))),
+		)),
+		av.Or(
+			av.Try(av.DiscardLeft(av.Rune('+'), av.Return(func(a, b int) int { return a + b }))),
+			av.DiscardLeft(av.Rune('*'), av.Return(func(a, b int) int { return a * b })),
+		),
+	))
+
+	for _, tt := range []struct {
+		name     string
+		input    string
+		expected int
+	}{
+		{
+			"addition chain",
+			"1+2+3+4+5",
+			15,
+		},
+		{
+			"multiplication chain",
+			"2*3*4*5",
+			120,
+		},
+		{
+			"multiplication / addition mix (no order of operations)",
+			"1+2*3+4",
+			// 1 + 2 * (3 + 4)
+			// 1 + (2 * 7)
+			// (1 + 14)
+			// 15
+			15,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := av.ParseString(tt.input, parser)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, got)
 		})
 	}
 }
