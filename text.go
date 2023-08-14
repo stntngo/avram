@@ -1,15 +1,16 @@
 package avram
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"unicode"
 )
 
-// Match accepts the target regex and returns it.
-func Match(re *regexp.Regexp) Parser[string] {
+// MatchRegexp accepts the target regex and returns it.
+func MatchRegexp(re *regexp.Regexp) Parser[string] {
 	return func(s *Scanner) (string, error) {
-		return s.Match(re)
+		return s.MatchRegexp(re)
 	}
 }
 
@@ -70,6 +71,19 @@ func Runes(rs ...rune) func(rune) bool {
 	return func(r rune) bool {
 		_, ok := set[r]
 		return ok
+	}
+}
+
+// Range accepts any rune r between lo and hi
+func Range(lo, hi rune) Parser[rune] {
+	return func(s *Scanner) (rune, error) {
+		return s.MatchRune(func(r rune) error {
+			if lo > r || r > hi {
+				return fmt.Errorf("rune %q not between %q and %q", r, lo, hi)
+			}
+
+			return nil
+		})
 	}
 }
 
@@ -158,6 +172,21 @@ func TakeWhile1(f func(rune) bool) Parser[string] {
 // returns the accepted characters as a string.
 func TakeTill(f func(rune) bool) Parser[string] {
 	return TakeWhile(negate(f))
+}
+
+// TakeTill1 accepts input as long as returns false and
+// returns the accepted characters as a string so long
+// as at least one character was matched
+func TakeTill1(f func(rune) bool) Parser[string] {
+	return Assert(
+		TakeTill(f),
+		func(s string) bool {
+			return len(s) > 0
+		},
+		func(string) error {
+			return errors.New("input must match at least one rune before predicate fails")
+		},
+	)
 }
 
 // Consumed runs p and returns the contents that were consumed during

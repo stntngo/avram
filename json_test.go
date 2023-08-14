@@ -80,7 +80,7 @@ var parsejson = Finish(Fix(
 				return Number(f)
 			},
 
-			Match(regexp.MustCompile(`[-+]?([0-9]*\.[0-9]+|[0-9]+)`)),
+			MatchRegexp(regexp.MustCompile(`[-+]?([0-9]*\.[0-9]+|[0-9]+)`)),
 		)
 
 		parsenull := DiscardLeft(MatchString("null"), Return(Null{}))
@@ -160,12 +160,12 @@ var parsejson = Finish(Fix(
 			),
 		)
 
-		return SkipWS(Choice(
+		return SkipWS(TryChoice(
 			"json object",
-			Try(jsonify(parsenull)),
-			Try(jsonify(parsestring)),
-			Try(jsonify(parsenumber)),
-			Try(parseArray),
+			jsonify(parsenull),
+			jsonify(parsestring),
+			jsonify(parsenumber),
+			parseArray,
 			parseObject,
 		))
 	},
