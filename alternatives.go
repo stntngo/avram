@@ -74,3 +74,15 @@ func Choice[A any](msg string, ps ...Parser[A]) Parser[A] {
 		return zero, fmt.Errorf("expected %s: %w", msg, errs)
 	}
 }
+
+// TryChoice wraps all but the final parser in `ps` ina Try meta-parser,
+// and passes the new parser slice as `ps` into the Choice combinator.
+// TryChoice will only return an error if the final provided parser returns
+// an error.
+func TryChoice[A any](msg string, ps ...Parser[A]) Parser[A] {
+	for i := 0; i < len(ps)-1; i++ {
+		ps[i] = Try(ps[i])
+	}
+
+	return Choice(msg, ps...)
+}

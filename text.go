@@ -1,6 +1,7 @@
 package avram
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"unicode"
@@ -171,6 +172,21 @@ func TakeWhile1(f func(rune) bool) Parser[string] {
 // returns the accepted characters as a string.
 func TakeTill(f func(rune) bool) Parser[string] {
 	return TakeWhile(negate(f))
+}
+
+// TakeTill1 accepts input as long as returns false and
+// returns the accepted characters as a string so long
+// as at least one character was matched
+func TakeTill1(f func(rune) bool) Parser[string] {
+	return Assert(
+		TakeTill(f),
+		func(s string) bool {
+			return len(s) > 0
+		},
+		func(string) error {
+			return errors.New("input must match at least one rune before predicate fails")
+		},
+	)
 }
 
 // Consumed runs p and returns the contents that were consumed during

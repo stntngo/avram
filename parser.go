@@ -93,9 +93,30 @@ func Return[A any](v A) Parser[A] {
 
 // Fail returns a parser that will always fail
 // with the error `err`.
-func Fail(err error) Parser[any] {
-	return func(s *Scanner) (any, error) {
-		return nil, err
+func Fail[A any](err error) Parser[A] {
+	return func(s *Scanner) (A, error) {
+		var zero A
+		return zero, err
+	}
+}
+
+// Assert runs the provided parser `p` and verifies its output against the predicate
+// `pred`. If the predicate returns false, the `fail` function is called to return
+// an error. Otherwise, the output of the parser `p` is returned.
+func Assert[A any](p Parser[A], pred func(A) bool, fail func(A) error) Parser[A] {
+	return func(s *Scanner) (A, error) {
+		out, err := p(s)
+		if err != nil {
+			var zero A
+			return zero, err
+		}
+
+		if !pred(out) {
+			var zero A
+			return zero, fail(out)
+		}
+
+		return out, nil
 	}
 }
 

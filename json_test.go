@@ -160,12 +160,12 @@ var parsejson = Finish(Fix(
 			),
 		)
 
-		return SkipWS(Choice(
+		return SkipWS(TryChoice(
 			"json object",
-			Try(jsonify(parsenull)),
-			Try(jsonify(parsestring)),
-			Try(jsonify(parsenumber)),
-			Try(parseArray),
+			jsonify(parsenull),
+			jsonify(parsestring),
+			jsonify(parsenumber),
+			parseArray,
 			parseObject,
 		))
 	},
