@@ -3,7 +3,9 @@ package avram_test
 import (
 	"errors"
 	"strconv"
+	"strings"
 	"testing"
+	"unicode"
 
 	av "github.com/stntngo/avram"
 	"github.com/stntngo/avram/result"
@@ -264,6 +266,48 @@ func TestMaybe(t *testing.T) {
 	}
 }
 
+func TestLocation(t *testing.T) {
+	for _, tt := range []struct {
+		name  string
+		input string
+	}{
+		{
+			name:  "single value",
+			input: "one",
+		},
+		{
+			name:  "multiple values",
+			input: "one two three four",
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			parser := av.Finish(av.SepBy(
+				av.Rune(' '),
+				av.Location(
+					av.TakeTill1(unicode.IsSpace),
+					func(start, end int, body string) String2 {
+						return String2{
+							start: start,
+							end:   end,
+							body:  body,
+						}
+					},
+				),
+			))
+
+			scanner := av.NewScanner(tt.input)
+
+			parsed, err := parser(scanner)
+			require.NoError(t, err)
+			require.Len(t, parsed, len(strings.Split(tt.input, " ")))
+
+			for _, s := range parsed {
+				assert.Equal(t, s.body, tt.input[s.start:s.end])
+			}
+		})
+	}
+}
+
 func TestChainL1(t *testing.T) {
 	parser := av.Finish(av.ChainL1(
 		result.Unwrap(av.Lift(
@@ -356,4 +400,9 @@ func TestChainR1(t *testing.T) {
 
 func ptr[T any](val T) *T {
 	return &val
+}
+
+type String2 struct {
+	start, end int
+	body       string
 }

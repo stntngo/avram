@@ -178,3 +178,22 @@ func Finish[A any](p Parser[A]) Parser[A] {
 		return parsed, nil
 	}
 }
+
+// Location meta-parser tracks the start and end location of successfully parsed
+// inputs, allowing the start and end location to be combined into the
+// parsed value through the provided function.
+func Location[A, B any](p Parser[A], f func(start int, end int, parsed A) B) Parser[B] {
+	return func(s *Scanner) (B, error) {
+		start := s.pos
+
+		a, err := p(s)
+		if err != nil {
+			var zero B
+			return zero, err
+		}
+
+		end := s.pos
+
+		return f(start, end, a), nil
+	}
+}
