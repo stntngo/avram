@@ -36,6 +36,10 @@ type Lexer[T any] struct {
 	err    error
 }
 
+func (l *Lexer[T]) Body() string {
+	return l.input[l.start:l.pos]
+}
+
 func (l *Lexer[T]) Err() error {
 	return l.err
 }
