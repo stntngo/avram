@@ -1,6 +1,7 @@
 package avramx_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stntngo/avram/avramx"
@@ -9,8 +10,14 @@ import (
 
 type token string
 
-func (t token) Match(other token) bool {
-	return t == other
+func match(t token) func(token) error {
+	return func(o token) error {
+		if t != o {
+			return fmt.Errorf("got %q wanted %q", o, t)
+		}
+
+		return nil
+	}
 }
 
 func TestChannelIterator(t *testing.T) {

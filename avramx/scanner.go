@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-func NewScanner[T Token[T]](input Iterator[T]) *Scanner[T] {
+func NewScanner[T any](input Iterator[T]) *Scanner[T] {
 	return &Scanner[T]{
 		input:  input,
 		pos:    0,
@@ -13,7 +13,7 @@ func NewScanner[T Token[T]](input Iterator[T]) *Scanner[T] {
 	}
 }
 
-type Scanner[T Token[T]] struct {
+type Scanner[T any] struct {
 	input  Iterator[T]
 	pos    int
 	buffer []T
