@@ -84,6 +84,42 @@ func Lex(l *lex.Lexer[Type]) (lex.LexerFunc[Type], error) {
 	switch r {
 	case lex.EOF:
 		return nil, nil
+	case ',':
+		l.Emit(COMMA)
+
+		return Lex, nil
+	case '.':
+		l.Emit(PERIOD)
+
+		return Lex, nil
+	case '(':
+		l.Emit(LPAREN)
+
+		return Lex, nil
+	case '[':
+		l.Emit(LBRACK)
+
+		return Lex, nil
+	case '{':
+		l.Emit(LBRACE)
+
+		return Lex, nil
+	case ')':
+		l.Emit(RPAREN)
+
+		return Lex, nil
+	case ']':
+		l.Emit(RBRACK)
+
+		return Lex, nil
+	case '}':
+		l.Emit(RBRACE)
+
+		return Lex, nil
+	case ';':
+		l.Emit(SEMICOLON)
+
+		return Lex, nil
 	case '\'':
 		return lexString, nil
 	case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
