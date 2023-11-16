@@ -27,8 +27,83 @@ func TestLexerSuccess(t *testing.T) {
 		},
 		{
 			"true false sequence",
-			"true false false true",
+			"true false FALSE TRUE",
 			[]sql.Type{sql.TRUE, sql.FALSE, sql.FALSE, sql.TRUE},
+		},
+		{
+			"singleton name",
+			"my_column",
+			[]sql.Type{sql.NAME},
+		},
+		{
+			"singleton string",
+			"'my string'",
+			[]sql.Type{sql.STRING},
+		},
+		{
+			"singleton number",
+			"12345",
+			[]sql.Type{sql.NUMBER},
+		},
+		{
+			"select name statement",
+			"select my_column from my_table",
+			[]sql.Type{sql.SELECT, sql.NAME, sql.FROM, sql.NAME},
+		},
+		{
+			"select string statement",
+			"select 'my string' from my_table",
+			[]sql.Type{sql.SELECT, sql.STRING, sql.FROM, sql.NAME},
+		},
+		{
+			"select number statement",
+			"select 32891 from my_table",
+			[]sql.Type{sql.SELECT, sql.NUMBER, sql.FROM, sql.NAME},
+		},
+		{
+			"select quoted name statement",
+			`select "my_column" from my_table`,
+			[]sql.Type{sql.SELECT, sql.QUOTED_NAME, sql.FROM, sql.NAME},
+		},
+		{
+			"select less than statement",
+			`select my_column < 10 from my_table`,
+			[]sql.Type{sql.SELECT, sql.NAME, sql.LE, sql.NUMBER, sql.FROM, sql.NAME},
+		},
+		{
+			"select greater than statement",
+			`select my_column > 10 from my_table`,
+			[]sql.Type{sql.SELECT, sql.NAME, sql.GE, sql.NUMBER, sql.FROM, sql.NAME},
+		},
+		{
+			"select less than equal statement",
+			`select my_column <= 10 from my_table`,
+			[]sql.Type{sql.SELECT, sql.NAME, sql.LEQ, sql.NUMBER, sql.FROM, sql.NAME},
+		},
+		{
+			"select greater than statement",
+			`select my_column >= 10 from my_table`,
+			[]sql.Type{sql.SELECT, sql.NAME, sql.GEQ, sql.NUMBER, sql.FROM, sql.NAME},
+		},
+		{
+			"select <> neq statement",
+			`select my_column <> 10 from my_table`,
+			[]sql.Type{sql.SELECT, sql.NAME, sql.NEQ, sql.NUMBER, sql.FROM, sql.NAME},
+		},
+		{
+			"select != neq statement",
+			`select my_column != 10 from my_table`,
+			[]sql.Type{sql.SELECT, sql.NAME, sql.NEQ, sql.NUMBER, sql.FROM, sql.NAME},
+		},
+		{
+			"statement with comment",
+			`select *
+-- this is a comment that can potentially be skipped
+from my_table
+// this too
+/* this is also a comment that
+should be ignored */`,
+			[]sql.Type{sql.SELECT, sql.MUL, sql.COMMENT, sql.FROM, sql.NAME, sql.COMMENT, sql.COMMENT},
 		},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
