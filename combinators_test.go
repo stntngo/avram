@@ -8,7 +8,6 @@ import (
 	"unicode"
 
 	av "github.com/stntngo/avram"
-	"github.com/stntngo/avram/result"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -310,10 +309,10 @@ func TestLocation(t *testing.T) {
 
 func TestChainL1(t *testing.T) {
 	parser := av.Finish(av.ChainL1(
-		result.Unwrap(av.Lift(
-			result.Lift(strconv.Atoi),
+		av.Lift(
+			strconv.Atoi,
 			av.Consumed(av.Many1(av.Range('0', '9'))),
-		)),
+		),
 		av.Or(
 			av.Try(av.DiscardLeft(av.Rune('+'), av.Return(func(a, b int) int { return a + b }))),
 			av.DiscardLeft(av.Rune('*'), av.Return(func(a, b int) int { return a * b })),
@@ -355,10 +354,10 @@ func TestChainL1(t *testing.T) {
 
 func TestChainR1(t *testing.T) {
 	parser := av.Finish(av.ChainR1(
-		result.Unwrap(av.Lift(
-			result.Lift(strconv.Atoi),
+		av.Lift(
+			strconv.Atoi,
 			av.Consumed(av.Many1(av.Range('0', '9'))),
-		)),
+		),
 		av.Or(
 			av.Try(av.DiscardLeft(av.Rune('+'), av.Return(func(a, b int) int { return a + b }))),
 			av.DiscardLeft(av.Rune('*'), av.Return(func(a, b int) int { return a * b })),

@@ -20,11 +20,11 @@ func Option[A any](fallback A, p Parser[A]) Parser[A] {
 // Both runs `p` followed by `q` and returns both results as a pair.
 func Both[A, B any](p Parser[A], q Parser[B]) Parser[Pair[A, B]] {
 	return Lift2(
-		func(a A, b B) Pair[A, B] {
+		func(a A, b B) (Pair[A, B], error) {
 			return Pair[A, B]{
 				Left:  a,
 				Right: b,
-			}
+			}, nil
 		},
 		p,
 		q,
@@ -199,8 +199,8 @@ func ChainR1[A any](p Parser[A], op Parser[func(A, A) A]) Parser[A] {
 	chain = func(acc A) Parser[A] {
 		return Or(
 			Try(Lift2(
-				func(f func(A, A) A, x A) A {
-					return f(acc, x)
+				func(f func(A, A) A, x A) (A, error) {
+					return f(acc, x), nil
 				},
 				op,
 				Bind(p, chain),
@@ -240,6 +240,6 @@ func ChainL1[A any](p Parser[A], op Parser[func(A, A) A]) Parser[A] {
 	}
 }
 
-func prepend[T any](first T, rest []T) []T {
-	return append([]T{first}, rest...)
+func prepend[T any](first T, rest []T) ([]T, error) {
+	return append([]T{first}, rest...), nil
 }
