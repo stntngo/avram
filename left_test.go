@@ -28,13 +28,13 @@ type lit int
 
 var parseExpr = Finish(Fix(func(parseExpr Parser[expr]) Parser[expr] {
 	parseLit := Lift(
-		func(r rune) expr {
-			return lit(r) - 48
+		func(r rune) (expr, error) {
+			return lit(r) - 48, nil
 		},
 		Satisfy(Runes('0', '1', '2', '3', '4', '5', '6', '7', '8', '9')),
 	)
 
-	parseGroup := Lift(func(e expr) expr { return group{g: e} }, Wrap(Rune('('), parseExpr, Rune(')')))
+	parseGroup := Lift(func(e expr) (expr, error) { return group{g: e}, nil }, Wrap(Rune('('), parseExpr, Rune(')')))
 
 	start := Or(parseGroup, parseLit)
 	end := Or(
@@ -43,15 +43,15 @@ var parseExpr = Finish(Fix(func(parseExpr Parser[expr]) Parser[expr] {
 	)
 
 	return Lift2(
-		func(a expr, b expr) expr {
+		func(a expr, b expr) (expr, error) {
 			if b != nil {
 				return sub{
 					left:  a,
 					right: b,
-				}
+				}, nil
 			}
 
-			return a
+			return a, nil
 		},
 		start,
 		end,

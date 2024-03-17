@@ -58,11 +58,11 @@ var parsecsv = Finish(Fix(func(p Parser[CSV]) Parser[CSV] {
 	parserow := SepBy1(Rune(','), Or(parsequoted, TakeTill(Runes(',', '\n'))))
 
 	return Lift2(
-		func(header []string, rows [][]string) CSV {
+		func(header []string, rows [][]string) (CSV, error) {
 			return CSV{
 				header: header,
 				rows:   rows,
-			}
+			}, nil
 		},
 		parserow,
 		DiscardLeft(Rune('\n'), SepBy(Rune('\n'), parserow)),

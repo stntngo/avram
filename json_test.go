@@ -71,13 +71,13 @@ func tointerface(n JSONNode) any {
 var parsejson = Finish(Fix(
 	func(json Parser[JSONNode]) Parser[JSONNode] {
 		parsenumber := Lift(
-			func(s string) Number {
+			func(s string) (Number, error) {
 				f, err := strconv.ParseFloat(s, 64)
 				if err != nil {
-					panic(err)
+					return 0, err
 				}
 
-				return Number(f)
+				return Number(f), nil
 			},
 
 			MatchRegexp(regexp.MustCompile(`[-+]?([0-9]*\.[0-9]+|[0-9]+)`)),
@@ -126,23 +126,23 @@ var parsejson = Finish(Fix(
 			Rune('"'),
 		)
 
-		parsestring := Lift(func(s string) String { return String(s) }, parsequoted)
+		parsestring := Lift(func(s string) (String, error) { return String(s), nil }, parsequoted)
 
 		parseArray := Lift(
-			func(arr []JSONNode) JSONNode {
-				return Array(arr)
+			func(arr []JSONNode) (JSONNode, error) {
+				return Array(arr), nil
 			},
 			Wrap(Rune('['), SepBy(Rune(','), json), Rune(']')),
 		)
 
 		parseObject := Lift(
-			func(pairs []Pair[String, JSONNode]) JSONNode {
+			func(pairs []Pair[String, JSONNode]) (JSONNode, error) {
 				object := make(Object)
 				for _, pair := range pairs {
 					object[pair.Left] = pair.Right
 				}
 
-				return object
+				return object, nil
 			},
 			Wrap(
 				Rune('{'),
