@@ -6,7 +6,7 @@
 
 avram is a generic parser-combinator library inspired by the likes of [ocaml's Angstrom](https://github.com/inhabitedtype/angstrom) and [Haskell's Parsec](https://hackage.haskell.org/package/parsec) ported to Go and making use of Go's generic data types.
 
-avram is an early work in progress and has not been extensively performance profiled or tuned in any way. The initial goal of this project was to provide the comfortable developer ergonomics of angstrom within the Go ecosystem. The API is very similar to the angstrom API as a result, replacing ocaml's custom infix operators with traditional Go functions where required.
+avram is an evolving library and has not been extensively performance profiled or tuned in any way. The initial goal of this project was to provide the comfortable developer ergonomics of angstrom within the Go ecosystem. The API is very similar to the angstrom API as a result, replacing ocaml's custom infix operators with traditional Go functions where required.
 
 ## Usage
 
