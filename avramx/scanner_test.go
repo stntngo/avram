@@ -33,7 +33,7 @@ func TestScanner(t *testing.T) {
 				close(c)
 			}()
 
-			it := avramx.ChannelIterator[token](c)
+			it := avramx.Iterator[token](avramx.ChannelIterator[token](c))
 			scanner := avramx.NewScanner(it)
 
 			var got []token

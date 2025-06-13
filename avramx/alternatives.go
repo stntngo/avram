@@ -6,9 +6,14 @@ import (
 	"go.uber.org/multierr"
 )
 
-// Or runs `p` and returns the result if it succeeds.
-// If `p` fails and no input has been consumed then `q` will
-// run instead.
+// Or tries parser p first. If p succeeds, returns its result.
+// If p fails, resets the input position and tries parser q.
+// This implements ordered choice with backtracking.
+//
+// Example:
+//
+//	parseIntOrFloat := Or(parseInt, parseFloat)
+//	// Tries to parse integer first, then float if that fails
 func Or[T, A any](p Parser[T, A], q Parser[T, A]) Parser[T, A] {
 	return func(s *Scanner[T]) (A, error) {
 		start := s.pos
@@ -30,12 +35,19 @@ func Or[T, A any](p Parser[T, A], q Parser[T, A]) Parser[T, A] {
 	}
 }
 
-// Choice runs each parser in `ps` in order until
-// one succeeds and returns the result. If any of the
-// failing parsers in `ps` consumes input, the accumulated
-// parse errors will be returned and the parse chain
-// will abort. In the case that none of the parsers succeeds,
-// then the parser will fail with the message "expected {msg}".
+// Choice tries each parser in ps in order until one succeeds.
+// If all parsers fail, returns an error with the provided message
+// and all accumulated errors. The input position is reset between
+// each parser attempt.
+//
+// Example:
+//
+//	parseKeyword := Choice("keyword",
+//		MatchString("if"),
+//		MatchString("else"),
+//		MatchString("while"),
+//	)
+//	// Tries each keyword in order
 func Choice[T, A any](msg string, ps ...Parser[T, A]) Parser[T, A] {
 	return func(s *Scanner[T]) (A, error) {
 		start := s.pos

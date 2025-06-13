@@ -340,7 +340,7 @@ var parsejson = Fix(
 func TestLexer(t *testing.T) {
 	l := lex.NewLexer(Lex, `{"key": null, "values": [20], "stuff": {}}`)
 	node, err := Parse(
-		Filter(l, func(tok lex.Token[TType]) bool { return tok.Type != WhiteSpace }),
+		Filter[lex.Token[TType]](l, func(tok lex.Token[TType]) bool { return tok.Type != WhiteSpace }),
 		parsejson,
 	)
 	require.NoError(t, err)
