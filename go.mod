@@ -1,6 +1,6 @@
 module github.com/stntngo/avram
 
-go 1.20
+go 1.27.0
 
 require (
 	github.com/stretchr/testify v1.7.0
