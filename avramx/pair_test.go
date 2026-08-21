@@ -64,12 +64,19 @@ func TestPairWithParsers(t *testing.T) {
 	result, err := avramx.Parse(it, parser)
 	require.NoError(t, err)
 
+	it2 := createIterator([]token{"hello", "world"})
+	parser2 := avramx.Match(match("hello")).
+		Then(avramx.Match(match("world")))
+	result2, err := parser2.Parse(it2)
+	require.NoError(t, err)
+
 	expected := avramx.Pair[token, token]{
 		Left:  "hello",
 		Right: "world",
 	}
 
 	assert.Equal(t, expected, result)
+	assert.Equal(t, expected, result2)
 }
 
 func TestNestedPairs(t *testing.T) {

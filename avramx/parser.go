@@ -1,6 +1,9 @@
 package avramx
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 // Unit represents a unit type that carries no information.
 // It is commonly used as a return type for parsers that perform
@@ -13,6 +16,343 @@ type Unit struct{}
 // Parsers are composable and can be combined using various combinators
 // to build complex parsing logic from simple building blocks.
 type Parser[T, A any] func(*Scanner[T]) (A, error)
+
+// Map runs p and transforms its result with f. It fails without calling f if p
+// fails and consumes no input beyond what p consumes.
+func (p Parser[T, A]) Map[B any](f func(A) B) Parser[T, B] {
+	return func(s *Scanner[T]) (B, error) {
+		vala, err := p(s)
+		if err != nil {
+			var zero B
+			return zero, err
+		}
+
+		return f(vala), nil
+	}
+}
+
+// TryMap runs p and transforms its result with the error-returning function f.
+// It fails if either p or f returns an error.
+func (p Parser[T, A]) TryMap[B any](f func(A) (B, error)) Parser[T, B] {
+	return Lift(f, p)
+}
+
+// Bind runs p, passes its result to f, and then runs the parser returned by f.
+// It enables the next parser to depend on the value produced by p.
+func (p Parser[T, A]) Bind[B any](f func(A) Parser[T, B]) Parser[T, B] {
+	return Bind(p, f)
+}
+
+// Then runs p followed by q and returns both results as a Pair. The result type
+// C is inferred as Pair[A, B] and does not need to be specified by callers.
+func (p Parser[T, A]) Then[B any, C interface{ Pair[A, B] }](q Parser[T, B]) Parser[T, C] {
+	return Lift2(
+		func(a A, b B) (C, error) {
+			return C(MakePair(a, b)), nil
+		},
+		p,
+		q,
+	)
+}
+
+// IgnoreThen runs p followed by q, discards the result of p, and returns the
+// result of q.
+func (p Parser[T, A]) IgnoreThen[B any](q Parser[T, B]) Parser[T, B] {
+	return DiscardLeft(p, q)
+}
+
+// ThenIgnore runs p followed by q, discards the result of q, and returns the
+// result of p.
+func (p Parser[T, A]) ThenIgnore[B any](q Parser[T, B]) Parser[T, A] {
+	return DiscardRight(p, q)
+}
+
+// Or tries p first. If p fails, it restores the input position and tries q.
+// If both parsers fail, Or returns their combined error.
+func (p Parser[T, A]) Or(q Parser[T, A]) Parser[T, A] {
+	return Or(p, q)
+}
+
+// Between runs left, p, and right in sequence, discards the delimiter results,
+// and returns the result of p.
+func (p Parser[T, A]) Between[L, R any](left Parser[T, L], right Parser[T, R]) Parser[T, A] {
+	return Wrap(left, p, right)
+}
+
+// Maybe optionally runs p. If p succeeds, Maybe returns a pointer to its
+// result. If p fails, Maybe restores the input position and returns nil without
+// an error. M is inferred as *A and does not need to be specified by callers.
+func (p Parser[T, A]) Maybe[M interface{ *A }]() Parser[T, M] {
+	return func(s *Scanner[T]) (M, error) {
+		checkpoint := s.pos
+
+		out, err := p(s)
+		if err != nil {
+			s.pos = checkpoint
+			return nil, nil
+		}
+
+		return &out, nil
+	}
+}
+
+// Option runs p and returns fallback without an error if p fails. Any input
+// consumed by p before it fails remains consumed.
+func (p Parser[T, A]) Option(fallback A) Parser[T, A] {
+	return Option(fallback, p)
+}
+
+// Many runs p zero or more times and returns all successful results. It restores
+// the input position to before the final failed attempt. S is inferred as []A.
+func (p Parser[T, A]) Many[S interface{ []A }]() Parser[T, S] {
+	return func(s *Scanner[T]) (S, error) {
+		var out []A
+
+		for {
+			checkpoint := s.pos
+
+			val, err := p(s)
+			if err != nil {
+				s.pos = checkpoint
+				return out, nil
+			}
+
+			out = append(out, val)
+		}
+	}
+}
+
+// ManyTill runs p zero or more times until stop succeeds. It consumes stop and
+// returns the results produced by p without including stop's result. It fails
+// if p fails before stop succeeds. S is inferred as []A.
+func (p Parser[T, A]) ManyTill[B any, S interface{ []A }](stop Parser[T, B]) Parser[T, S] {
+	return func(s *Scanner[T]) (S, error) {
+		var acc []A
+		for {
+			checkpoint := s.pos
+			_, err := stop(s)
+			if err == nil {
+				return acc, nil
+			}
+			s.pos = checkpoint
+
+			el, err := p(s)
+			if err != nil {
+				return nil, err
+			}
+
+			acc = append(acc, el)
+		}
+	}
+}
+
+// Spanned runs p and associates its result with the scanner positions before
+// and after the parse. B is inferred as Spanned[A].
+func (p Parser[T, A]) Spanned[B interface{ Spanned[A] }]() Parser[T, B] {
+	return func(s *Scanner[T]) (B, error) {
+		start := s.pos
+		value, err := p(s)
+		if err != nil {
+			var zero B
+			return zero, err
+		}
+
+		end := s.pos
+
+		return B(Spanned[A]{
+			Value: value,
+			Start: start,
+			End:   end,
+		}), nil
+	}
+}
+
+// Many1 runs p one or more times and returns all successful results. It fails
+// and restores the original input position if p does not succeed at least once.
+// S is inferred as []A.
+func (p Parser[T, A]) Many1[S interface{ []A }]() Parser[T, S] {
+	return func(s *Scanner[T]) (S, error) {
+		var out []A
+
+		original := s.pos
+		for {
+			checkpoint := s.pos
+
+			val, err := p(s)
+			if err != nil {
+				s.pos = checkpoint
+				if len(out) == 0 {
+					s.pos = original
+					return nil, err
+				}
+
+				return out, nil
+			}
+
+			out = append(out, val)
+		}
+	}
+}
+
+// SepBy runs p zero or more times with separator between each occurrence and
+// returns the results produced by p. S is inferred as []A.
+func (p Parser[T, A]) SepBy[B any, S interface{ []A }](seperator Parser[T, B]) Parser[T, S] {
+	return p.SepBy1[B, S](seperator).
+		Or(Return[T, S](S{}))
+}
+
+// SepBy1 runs p one or more times with separator between each occurrence and
+// returns the results produced by p. It fails if p never succeeds. S is
+// inferred as []A.
+func (p Parser[T, A]) SepBy1[B any, S interface{ []A }](seperator Parser[T, B]) Parser[T, S] {
+	return Lift2(
+		func(first A, rest S) (S, error) {
+			return append(S{first}, rest...), nil
+		},
+		p,
+		seperator.IgnoreThen(p).Many[S](),
+	)
+}
+
+// ChainLeft parses one or more occurrences of p separated by op and combines
+// them left-associatively. For example, "a-b-c" is combined as "(a-b)-c".
+func (p Parser[T, A]) ChainLeft[O interface{ ~func(A, A) A }](op Parser[T, O]) Parser[T, A] {
+	return func(s *Scanner[T]) (A, error) {
+		value, err := p(s)
+		if err != nil {
+			var zero A
+			return zero, err
+		}
+
+		for {
+			checkpoint := s.pos
+			combine, err := op(s)
+			if err != nil {
+				s.pos = checkpoint
+				return value, nil
+			}
+
+			right, err := p(s)
+			if err != nil {
+				s.pos = checkpoint
+				return value, nil
+			}
+
+			value = combine(value, right)
+		}
+	}
+}
+
+// ChainRight parses one or more occurrences of p separated by op and combines
+// them right-associatively. For example, "a^b^c" is combined as "a^(b^c)".
+func (p Parser[T, A]) ChainRight[O interface{ ~func(A, A) A }](op Parser[T, O]) Parser[T, A] {
+	var chain Parser[T, A]
+	chain = func(s *Scanner[T]) (A, error) {
+		left, err := p(s)
+		if err != nil {
+			var zero A
+			return zero, err
+		}
+
+		checkpoint := s.pos
+		combine, err := op(s)
+		if err != nil {
+			s.pos = checkpoint
+			return left, nil
+		}
+
+		right, err := chain(s)
+		if err != nil {
+			s.pos = checkpoint
+			return left, nil
+		}
+
+		return combine(left, right), nil
+	}
+
+	return chain
+}
+
+// ChainNone parses either one occurrence of p or two occurrences separated by
+// op. It rejects a second operator, making op non-associative.
+func (p Parser[T, A]) ChainNone[O interface{ ~func(A, A) A }](op Parser[T, O]) Parser[T, A] {
+	return func(s *Scanner[T]) (A, error) {
+		left, err := p(s)
+		if err != nil {
+			var zero A
+			return zero, err
+		}
+
+		checkpoint := s.pos
+		combine, err := op(s)
+		if err != nil {
+			s.pos = checkpoint
+			return left, nil
+		}
+
+		right, err := p(s)
+		if err != nil {
+			var zero A
+			return zero, err
+		}
+
+		checkpoint = s.pos
+		_, chained := op(s)
+		s.pos = checkpoint
+		if chained == nil {
+			var zero A
+			return zero, errors.New("non-associative operator cannot be chained")
+		}
+
+		return combine(left, right), nil
+	}
+}
+
+// Named associates name with p so that parse failures identify the parser by
+// name in their error messages.
+func (p Parser[T, A]) Named(name string) Parser[T, A] {
+	return Name(name, p)
+}
+
+// LookAhead runs p without consuming input, regardless of whether p succeeds
+// or fails.
+func (p Parser[T, A]) LookAhead() Parser[T, A] {
+	return LookAhead(p)
+}
+
+// To runs p, ignores its contents, and returns the provided constant.
+func (p Parser[T, A]) To[B any](value B) Parser[T, B] {
+	return p.IgnoreThen(Return[T, B](value))
+}
+
+// Ignored runs p, ignores its contents, and returns the Unit constant.
+func (p Parser[T, A]) Ignored() Parser[T, Unit] {
+	return p.To(Unit{})
+}
+
+// Assert runs p and accepts its result only when pred returns true. If pred
+// returns false, Assert fails with the error produced by fail.
+func (p Parser[T, A]) Assert(pred func(A) bool, fail func(A) error) Parser[T, A] {
+	return func(s *Scanner[T]) (A, error) {
+		val, err := p(s)
+		if err != nil {
+			var zero A
+			return zero, err
+		}
+
+		if !pred(val) {
+			var zero A
+			return zero, fail(val)
+		}
+
+		return val, nil
+	}
+}
+
+// Parse executes p against input and returns its result.
+func (p Parser[T, A]) Parse(input Iterator[T]) (A, error) {
+	return Parse(input, p)
+}
 
 // Parse executes a parser on the given input iterator and returns the result.
 // This is the main entry point for running parsers.

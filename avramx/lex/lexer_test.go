@@ -337,6 +337,63 @@ var parsejson = Fix(
 	},
 )
 
+var parsejson2 = Fix(
+	func(json Parser[lex.Token[TType], JSONNode]) Parser[lex.Token[TType], JSONNode] {
+		parsenumber := MatchAnyLiteral.
+			TryMap(
+				func(t lex.Token[TType]) (Number, error) {
+					f, err := strconv.ParseFloat(t.Body, 64)
+					if err != nil {
+						return 0, err
+					}
+
+					return Number(f), nil
+				},
+			).
+			Named("number")
+
+		parsenull := MatchLiteral("null").To(Null{}).Named("null")
+
+		parsestring := MatchAnyQuoted.
+			Map(func(t lex.Token[TType]) String {
+				return String(t.Body)
+			}).
+			Named("string")
+
+		parsearray := json.
+			SepBy(MatchComma).
+			Between(MatchLeftBracket, MatchRightBracket).
+			Map(
+				func(nodes []JSONNode) Array { return Array(nodes) },
+			).
+			Named("array")
+
+		parseobject := parsestring.
+			ThenIgnore(MatchColon).
+			Then(json).
+			SepBy(MatchComma).
+			Between(MatchLeftCurly, MatchRightCurly).
+			Map(func(pairs []Pair[String, JSONNode]) Object {
+				object := make(Object, len(pairs))
+				for _, pair := range pairs {
+					object[pair.Left] = pair.Right
+				}
+
+				return object
+			}).
+			Named("object")
+
+		return Choice(
+			"json object",
+			jsonify(parsenull),
+			jsonify(parsestring),
+			jsonify(parsenumber),
+			jsonify(parsearray),
+			jsonify(parseobject),
+		)
+	},
+)
+
 func TestLexer(t *testing.T) {
 	l := lex.NewLexer(Lex, `{"key": null, "values": [20], "stuff": {}}`)
 	node, err := Parse(
@@ -348,5 +405,24 @@ func TestLexer(t *testing.T) {
 		"key":    Null{},
 		"values": Array{Number(20)},
 		"stuff":  Object{},
+	}, node)
+}
+
+func TestLexer2(t *testing.T) {
+	l := lex.NewLexer(Lex, `{"key": null, "values": [20, 30, 40], "stuff": {"embedded": 10, "other": null}}`)
+	nowhitespace := Filter[lex.Token[TType]](
+		l,
+		func(tok lex.Token[TType]) bool { return tok.Type != WhiteSpace },
+	)
+
+	node, err := parsejson2.Parse(nowhitespace)
+	require.NoError(t, err)
+	assert.Equal(t, Object{
+		"key":    Null{},
+		"values": Array{Number(20), Number(30), Number(40)},
+		"stuff": Object{
+			"embedded": Number(10),
+			"other":    Null{},
+		},
 	}, node)
 }

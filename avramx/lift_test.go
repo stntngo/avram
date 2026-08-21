@@ -48,7 +48,52 @@ func TestLift(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			it := createIterator(tt.tokens)
 			parser := avramx.Lift(tt.transform, avramx.Match(match("hello")))
-			result, err := avramx.Parse(it, parser)
+			result1, err1 := avramx.Parse(it, parser)
+
+			it2 := createIterator(tt.tokens)
+			parser2 := avramx.Match(match("hello")).
+				TryMap(tt.transform)
+			result2, err2 := parser2.Parse(it2)
+
+			if tt.wantErr {
+				require.Error(t, err1)
+				require.Error(t, err2)
+
+			} else {
+				require.NoError(t, err1)
+				assert.Equal(t, tt.want, result1)
+
+				require.NoError(t, err2)
+				assert.Equal(t, tt.want, result2)
+			}
+		})
+	}
+}
+
+func TestMap(t *testing.T) {
+	tests := []struct {
+		name    string
+		tokens  []token
+		wantErr bool
+		want    string
+	}{
+		{
+			name:   "map success",
+			tokens: []token{"hello"},
+			want:   "hello world",
+		},
+		{
+			name:    "map parser error",
+			tokens:  []token{"world"},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			parser := avramx.Match(match("hello")).
+				Map(func(value token) string { return string(value) + " world" })
+			result, err := parser.Parse(createIterator(tt.tokens))
 
 			if tt.wantErr {
 				require.Error(t, err)

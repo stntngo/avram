@@ -25,3 +25,26 @@ func MakePair[A, B any](a A, b B) Pair[A, B] {
 		Right: b,
 	}
 }
+
+// Unpack returns the left and right values of p as separate results.
+func Unpack[A, B any](p Pair[A, B]) (A, B) {
+	return p.Left, p.Right
+}
+
+// UnpackLeft flattens a left-nested Pair of the form ((A, B), C) into
+// three separate results.
+func UnpackLeft[A, B, C any](p Pair[Pair[A, B], C]) (A, B, C) {
+	return p.Left.Left, p.Left.Right, p.Right
+}
+
+// UnpackRight flattens a right-nested Pair of the form (A, (B, C)) into
+// three separate results.
+func UnpackRight[A, B, C any](p Pair[A, Pair[B, C]]) (A, B, C) {
+	return p.Left, p.Right.Left, p.Right.Right
+}
+
+// Unpack4 flattens a balanced Pair of the form ((A, B), (C, D)) into
+// four separate results.
+func Unpack4[A, B, C, D any](p Pair[Pair[A, B], Pair[C, D]]) (A, B, C, D) {
+	return p.Left.Left, p.Left.Right, p.Right.Left, p.Right.Right
+}

@@ -38,12 +38,19 @@ func TestOption(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			it := createIterator(tt.tokens)
+			it1 := createIterator(tt.tokens)
 			parser := avramx.Option(tt.fallback, avramx.Match(match("hello")))
-			result, err := avramx.Parse(it, parser)
+			result1, err1 := avramx.Parse(it1, parser)
 
-			require.NoError(t, err) // Option never fails
-			assert.Equal(t, tt.want, result)
+			it2 := createIterator(tt.tokens)
+			parser2 := avramx.Match(match("hello")).Option(tt.fallback)
+			result2, err2 := parser2.Parse(it2)
+
+			require.NoError(t, err1) // Option never fails
+			assert.Equal(t, tt.want, result1)
+
+			require.NoError(t, err2)
+			assert.Equal(t, tt.want, result2)
 		})
 	}
 }
@@ -79,18 +86,27 @@ func TestBoth(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			it := createIterator(tt.tokens)
+			it1 := createIterator(tt.tokens)
 			parser := avramx.Both(
 				avramx.Match(match("hello")),
 				avramx.Match(match("world")),
 			)
-			result, err := avramx.Parse(it, parser)
+			result1, err1 := avramx.Parse(it1, parser)
+
+			it2 := createIterator(tt.tokens)
+			parser2 := avramx.Match(match("hello")).
+				Then(avramx.Match(match("world")))
+			result2, err2 := parser2.Parse(it2)
 
 			if tt.wantErr {
-				require.Error(t, err)
+				require.Error(t, err1)
+				require.Error(t, err2)
 			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tt.want, result)
+				require.NoError(t, err1)
+				assert.Equal(t, tt.want, result1)
+
+				require.NoError(t, err2)
+				assert.Equal(t, tt.want, result2)
 			}
 		})
 	}
@@ -228,12 +244,19 @@ func TestMany(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			it := createIterator(tt.tokens)
+			it1 := createIterator(tt.tokens)
 			parser := avramx.Many(avramx.Match(match("hello")))
-			result, err := avramx.Parse(it, parser)
+			result1, err1 := avramx.Parse(it1, parser)
 
-			require.NoError(t, err) // Many never fails
-			assert.Equal(t, tt.want, result)
+			it2 := createIterator(tt.tokens)
+			parser2 := avramx.Match(match("hello")).Many()
+			result2, err2 := parser2.Parse(it2)
+
+			require.NoError(t, err1) // Many never fails
+			assert.Equal(t, tt.want, result1)
+
+			require.NoError(t, err2)
+			assert.Equal(t, tt.want, result2)
 		})
 	}
 }
@@ -269,15 +292,23 @@ func TestMany1(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			it := createIterator(tt.tokens)
+			it1 := createIterator(tt.tokens)
 			parser := avramx.Many1(avramx.Match(match("hello")))
-			result, err := avramx.Parse(it, parser)
+			result1, err1 := avramx.Parse(it1, parser)
+
+			it2 := createIterator(tt.tokens)
+			parser2 := avramx.Match(match("hello")).Many1()
+			result2, err2 := parser2.Parse(it2)
 
 			if tt.wantErr {
-				require.Error(t, err)
+				require.Error(t, err1)
+				require.Error(t, err2)
 			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tt.want, result)
+				require.NoError(t, err1)
+				assert.Equal(t, tt.want, result1)
+
+				require.NoError(t, err2)
+				assert.Equal(t, tt.want, result2)
 			}
 		})
 	}
@@ -356,15 +387,23 @@ func TestSepBy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			it := createIterator(tt.tokens)
+			it1 := createIterator(tt.tokens)
 			parser := avramx.SepBy(
 				avramx.Match(match(",")),
 				avramx.Match(match("hello")),
 			)
-			result, err := avramx.Parse(it, parser)
+			result1, err1 := avramx.Parse(it1, parser)
 
-			require.NoError(t, err) // SepBy never fails
-			assert.Equal(t, tt.want, result)
+			it2 := createIterator(tt.tokens)
+			parser2 := avramx.Match(match("hello")).
+				SepBy(avramx.Match(match(",")))
+			result2, err2 := parser2.Parse(it2)
+
+			require.NoError(t, err1) // SepBy never fails
+			assert.Equal(t, tt.want, result1)
+
+			require.NoError(t, err2)
+			assert.Equal(t, tt.want, result2)
 		})
 	}
 }
@@ -400,18 +439,27 @@ func TestSepBy1(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			it := createIterator(tt.tokens)
+			it1 := createIterator(tt.tokens)
 			parser := avramx.SepBy1(
 				avramx.Match(match(",")),
 				avramx.Match(match("hello")),
 			)
-			result, err := avramx.Parse(it, parser)
+			result1, err1 := avramx.Parse(it1, parser)
+
+			it2 := createIterator(tt.tokens)
+			parser2 := avramx.Match(match("hello")).
+				SepBy1(avramx.Match(match(",")))
+			result2, err2 := parser2.Parse(it2)
 
 			if tt.wantErr {
-				require.Error(t, err)
+				require.Error(t, err1)
+				require.Error(t, err2)
 			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tt.want, result)
+				require.NoError(t, err1)
+				assert.Equal(t, tt.want, result1)
+
+				require.NoError(t, err2)
+				assert.Equal(t, tt.want, result2)
 			}
 		})
 	}

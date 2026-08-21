@@ -8,6 +8,29 @@ type Iterator[T any] interface {
 	Next() (T, bool)
 }
 
+type sliceIterator[T any] struct {
+	current int
+	slice []T
+}
+
+func (s *sliceIterator[T]) Next() (T, bool) {
+	if s.current >= len(s.slice) {
+		var zero T
+		return zero, false
+	}
+
+	s.current++
+
+	return s.slice[s.current-1], true
+}
+
+func SliceIterator[T any, S ~[]T](s S) Iterator[T] {
+	return &sliceIterator[T]{
+		current: 0,
+		slice: s,
+	}
+}
+
 // ChannelIterator adapts a receive-only channel into an Iterator.
 // It reads values from the channel until the channel is closed.
 //
