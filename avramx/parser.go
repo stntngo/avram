@@ -134,10 +134,10 @@ func (p Parser[T, A]) ManyTill[B any, S interface{ []A }](stop Parser[T, B]) Par
 			if err == nil {
 				return acc, nil
 			}
+			s.pos = checkpoint
 
 			el, err := p(s)
 			if err != nil {
-				s.pos = checkpoint
 				return nil, err
 			}
 

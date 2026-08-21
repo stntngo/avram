@@ -1,6 +1,7 @@
 package avramx_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stntngo/avram/avramx"
@@ -119,4 +120,32 @@ func TestFluentChains(t *testing.T) {
 			assert.Equal(t, tt.expected, parsed)
 		})
 	}
+}
+
+func TestFluentManyTillBacktracksFailedStop(t *testing.T) {
+	anyToken := avramx.Match(func(token) error { return nil })
+	stop := avramx.Match(match("<")).ThenIgnore(avramx.Match(match(">")))
+	scanner := avramx.NewScanner(createIterator([]token{"<", "body", "<", ">", "tail"}))
+
+	parsed, err := anyToken.ManyTill(stop)(scanner)
+	require.NoError(t, err)
+	assert.Equal(t, []token{"<", "body"}, parsed)
+
+	next, err := scanner.Read()
+	require.NoError(t, err)
+	assert.Equal(t, token("tail"), next)
+}
+
+func TestFluentMethodsPreserveParserErrors(t *testing.T) {
+	sentinel := errors.New("sentinel")
+
+	_, err := avramx.Fail[token, token](sentinel).
+		Many1().
+		Parse(createIterator(nil))
+	require.ErrorIs(t, err, sentinel)
+
+	_, err = avramx.Fail[token, token](sentinel).
+		Spanned().
+		Parse(createIterator(nil))
+	require.ErrorIs(t, err, sentinel)
 }
