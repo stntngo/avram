@@ -13,6 +13,7 @@ func TestParser(t *testing.T) {
 		name     string
 		tokens   []token
 		parser   avramx.Parser[token, token]
+		fluent   avramx.Parser[token, token]
 		expected token
 	}{
 		{
@@ -21,6 +22,10 @@ func TestParser(t *testing.T) {
 			parser: avramx.Wrap(
 				avramx.Match(match("(")),
 				avramx.Match(match("bar")),
+				avramx.Match(match(")")),
+			),
+			fluent: avramx.Match(match("bar")).Between(
+				avramx.Match(match("(")),
 				avramx.Match(match(")")),
 			),
 			expected: "bar",
@@ -43,8 +48,12 @@ func TestParser(t *testing.T) {
 			it := avramx.Iterator[token](avramx.ChannelIterator[token](c))
 			parsed, err := avramx.Parse(it, tt.parser)
 			require.NoError(t, err)
-
 			assert.Equal(t, tt.expected, parsed)
+
+			it2 := createIterator(tt.tokens)
+			parsed2, err := tt.fluent.Parse(it2)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, parsed2)
 		})
 	}
 }

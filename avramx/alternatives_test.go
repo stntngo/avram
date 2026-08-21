@@ -39,18 +39,27 @@ func TestOr(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			it := createIterator(tt.tokens)
+			it1 := createIterator(tt.tokens)
 			parser := avramx.Or(
 				avramx.Match(match("hello")),
 				avramx.Match(match("world")),
 			)
-			result, err := avramx.Parse(it, parser)
+			result1, err1 := avramx.Parse(it1, parser)
+
+			it2 := createIterator(tt.tokens)
+			parser2 := avramx.Match(match("hello")).
+				Or(avramx.Match(match("world")))
+			result2, err2 := parser2.Parse(it2)
 
 			if tt.wantErr {
-				require.Error(t, err)
+				require.Error(t, err1)
+				require.Error(t, err2)
 			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tt.want, result)
+				require.NoError(t, err1)
+				assert.Equal(t, tt.want, result1)
+
+				require.NoError(t, err2)
+				assert.Equal(t, tt.want, result2)
 			}
 		})
 	}
@@ -84,6 +93,19 @@ func TestOrWithConsumption(t *testing.T) {
 	next, err := scanner.Read()
 	require.NoError(t, err)
 	assert.Equal(t, token("world"), next)
+
+	it2 := createIterator([]token{"hello", "world"})
+	scanner2 := avramx.NewScanner(it2)
+	parser2 := avramx.Parser[token, token](failingParser).
+		Or(avramx.Match(match("hello")))
+
+	result2, err := parser2(scanner2)
+	require.NoError(t, err)
+	assert.Equal(t, token("hello"), result2)
+
+	next2, err := scanner2.Read()
+	require.NoError(t, err)
+	assert.Equal(t, token("world"), next2)
 }
 
 func TestChoice(t *testing.T) {

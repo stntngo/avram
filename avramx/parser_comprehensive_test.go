@@ -78,16 +78,26 @@ func TestName(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			it := createIterator(tt.tokens)
+			it1 := createIterator(tt.tokens)
 			parser := avramx.Name(tt.parserName, avramx.Match(match("hello")))
-			result, err := avramx.Parse(it, parser)
+			result1, err1 := avramx.Parse(it1, parser)
+
+			it2 := createIterator(tt.tokens)
+			parser2 := avramx.Match(match("hello")).Named(tt.parserName)
+			result2, err2 := parser2.Parse(it2)
 
 			if tt.wantErr {
-				require.Error(t, err)
-				assert.Contains(t, err.Error(), tt.parserName)
+				require.Error(t, err1)
+				assert.Contains(t, err1.Error(), tt.parserName)
+
+				require.Error(t, err2)
+				assert.Contains(t, err2.Error(), tt.parserName)
 			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tt.want, result)
+				require.NoError(t, err1)
+				assert.Equal(t, tt.want, result1)
+
+				require.NoError(t, err2)
+				assert.Equal(t, tt.want, result2)
 			}
 		})
 	}
@@ -118,16 +128,25 @@ func TestMaybe(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			it := createIterator(tt.tokens)
+			it1 := createIterator(tt.tokens)
 			parser := avramx.Maybe(avramx.Match(match("hello")))
-			result, err := avramx.Parse(it, parser)
+			result1, err1 := avramx.Parse(it1, parser)
 
-			require.NoError(t, err) // Maybe never fails
+			it2 := createIterator(tt.tokens)
+			parser2 := avramx.Match(match("hello")).Maybe()
+			result2, err2 := parser2.Parse(it2)
+
+			require.NoError(t, err1) // Maybe never fails
+			require.NoError(t, err2)
 			if tt.want == nil {
-				assert.Nil(t, result)
+				assert.Nil(t, result1)
+				assert.Nil(t, result2)
 			} else {
-				require.NotNil(t, result)
-				assert.Equal(t, *tt.want, *result)
+				require.NotNil(t, result1)
+				assert.Equal(t, *tt.want, *result1)
+
+				require.NotNil(t, result2)
+				assert.Equal(t, *tt.want, *result2)
 			}
 		})
 	}
@@ -154,23 +173,36 @@ func TestLookAhead(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			it := createIterator(tt.tokens)
-			scanner := avramx.NewScanner(it)
+			it1 := createIterator(tt.tokens)
+			scanner1 := avramx.NewScanner(it1)
 
 			parser := avramx.LookAhead(avramx.Match(match("hello")))
-			result, err := parser(scanner)
+			result1, err1 := parser(scanner1)
+
+			it2 := createIterator(tt.tokens)
+			scanner2 := avramx.NewScanner(it2)
+			parser2 := avramx.Match(match("hello")).LookAhead()
+			result2, err2 := parser2(scanner2)
 
 			if tt.wantErr {
-				require.Error(t, err)
+				require.Error(t, err1)
+				require.Error(t, err2)
 			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tt.want, result)
+				require.NoError(t, err1)
+				assert.Equal(t, tt.want, result1)
+
+				require.NoError(t, err2)
+				assert.Equal(t, tt.want, result2)
 			}
 
 			// Verify input wasn't consumed
-			first, readErr := scanner.Read()
-			require.NoError(t, readErr)
-			assert.Equal(t, tt.tokens[0], first)
+			first1, readErr1 := scanner1.Read()
+			require.NoError(t, readErr1)
+			assert.Equal(t, tt.tokens[0], first1)
+
+			first2, readErr2 := scanner2.Read()
+			require.NoError(t, readErr2)
+			assert.Equal(t, tt.tokens[0], first2)
 		})
 	}
 }
@@ -315,26 +347,36 @@ func TestBind(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			it := createIterator(tt.tokens)
+			next := func(first token) avramx.Parser[token, string] {
+				return func(s *avramx.Scanner[token]) (string, error) {
+					second, err := avramx.Match(match("world"))(s)
+					if err != nil {
+						return "", err
+					}
+					return string(first) + " " + string(second), nil
+				}
+			}
+
+			it1 := createIterator(tt.tokens)
 			parser := avramx.Bind(
 				avramx.Match(match("hello")),
-				func(first token) avramx.Parser[token, string] {
-					return func(s *avramx.Scanner[token]) (string, error) {
-						second, err := avramx.Match(match("world"))(s)
-						if err != nil {
-							return "", err
-						}
-						return string(first) + " " + string(second), nil
-					}
-				},
+				next,
 			)
-			result, err := avramx.Parse(it, parser)
+			result1, err1 := avramx.Parse(it1, parser)
+
+			it2 := createIterator(tt.tokens)
+			parser2 := avramx.Match(match("hello")).Bind(next)
+			result2, err2 := parser2.Parse(it2)
 
 			if tt.wantErr {
-				require.Error(t, err)
+				require.Error(t, err1)
+				require.Error(t, err2)
 			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tt.want, result)
+				require.NoError(t, err1)
+				assert.Equal(t, tt.want, result1)
+
+				require.NoError(t, err2)
+				assert.Equal(t, tt.want, result2)
 			}
 		})
 	}
@@ -366,18 +408,27 @@ func TestDiscardLeft(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			it := createIterator(tt.tokens)
+			it1 := createIterator(tt.tokens)
 			parser := avramx.DiscardLeft(
 				avramx.Match(match("hello")),
 				avramx.Match(match("world")),
 			)
-			result, err := avramx.Parse(it, parser)
+			result1, err1 := avramx.Parse(it1, parser)
+
+			it2 := createIterator(tt.tokens)
+			parser2 := avramx.Match(match("hello")).
+				IgnoreThen(avramx.Match(match("world")))
+			result2, err2 := parser2.Parse(it2)
 
 			if tt.wantErr {
-				require.Error(t, err)
+				require.Error(t, err1)
+				require.Error(t, err2)
 			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tt.want, result)
+				require.NoError(t, err1)
+				assert.Equal(t, tt.want, result1)
+
+				require.NoError(t, err2)
+				assert.Equal(t, tt.want, result2)
 			}
 		})
 	}
@@ -409,18 +460,27 @@ func TestDiscardRight(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			it := createIterator(tt.tokens)
+			it1 := createIterator(tt.tokens)
 			parser := avramx.DiscardRight(
 				avramx.Match(match("hello")),
 				avramx.Match(match("world")),
 			)
-			result, err := avramx.Parse(it, parser)
+			result1, err1 := avramx.Parse(it1, parser)
+
+			it2 := createIterator(tt.tokens)
+			parser2 := avramx.Match(match("hello")).
+				ThenIgnore(avramx.Match(match("world")))
+			result2, err2 := parser2.Parse(it2)
 
 			if tt.wantErr {
-				require.Error(t, err)
+				require.Error(t, err1)
+				require.Error(t, err2)
 			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tt.want, result)
+				require.NoError(t, err1)
+				assert.Equal(t, tt.want, result1)
+
+				require.NoError(t, err2)
+				assert.Equal(t, tt.want, result2)
 			}
 		})
 	}
