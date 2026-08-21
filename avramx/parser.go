@@ -129,6 +129,7 @@ func (p Parser[T, A]) ManyTill[B any, S interface{ []A }](stop Parser[T, B]) Par
 	return func(s *Scanner[T]) (S, error) {
 		var acc []A
 		for {
+			checkpoint := s.pos
 			_, err := stop(s)
 			if err == nil {
 				return acc, nil
@@ -136,6 +137,7 @@ func (p Parser[T, A]) ManyTill[B any, S interface{ []A }](stop Parser[T, B]) Par
 
 			el, err := p(s)
 			if err != nil {
+				s.pos = checkpoint
 				return nil, err
 			}
 
@@ -152,7 +154,7 @@ func (p Parser[T, A]) Spanned[B interface{ Spanned[A] }]() Parser[T, B] {
 		value, err := p(s)
 		if err != nil {
 			var zero B
-			return zero, nil
+			return zero, err
 		}
 
 		end := s.pos
@@ -181,7 +183,7 @@ func (p Parser[T, A]) Many1[S interface{ []A }]() Parser[T, S] {
 				s.pos = checkpoint
 				if len(out) == 0 {
 					s.pos = original
-					return nil, errors.New("failed")
+					return nil, err
 				}
 
 				return out, nil
