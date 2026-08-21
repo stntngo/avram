@@ -57,3 +57,66 @@ func TestParser(t *testing.T) {
 		})
 	}
 }
+
+func TestFluentChains(t *testing.T) {
+	type combine func(string, string) string
+
+	operand := avramx.Match(match("a")).
+		Or(avramx.Match(match("b"))).
+		Or(avramx.Match(match("c"))).
+		Map(func(t token) string { return string(t) })
+	operator := avramx.Match(match("^")).
+		To(combine(func(left, right string) string {
+			return "(" + left + "^" + right + ")"
+		}))
+
+	for _, tt := range []struct {
+		name     string
+		tokens   []token
+		parser   avramx.Parser[token, string]
+		expected string
+		wantErr  bool
+	}{
+		{
+			name:     "left associative",
+			tokens:   []token{"a", "^", "b", "^", "c"},
+			parser:   operand.ChainLeft(operator),
+			expected: "((a^b)^c)",
+		},
+		{
+			name:     "right associative",
+			tokens:   []token{"a", "^", "b", "^", "c"},
+			parser:   operand.ChainRight(operator),
+			expected: "(a^(b^c))",
+		},
+		{
+			name:     "non-associative without operator",
+			tokens:   []token{"a"},
+			parser:   operand.ChainNone(operator),
+			expected: "a",
+		},
+		{
+			name:     "non-associative with one operator",
+			tokens:   []token{"a", "^", "b"},
+			parser:   operand.ChainNone(operator),
+			expected: "(a^b)",
+		},
+		{
+			name:    "non-associative rejects a chain",
+			tokens:  []token{"a", "^", "b", "^", "c"},
+			parser:  operand.ChainNone(operator),
+			wantErr: true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			parsed, err := tt.parser.Parse(createIterator(tt.tokens))
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, parsed)
+		})
+	}
+}

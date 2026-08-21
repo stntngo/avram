@@ -92,7 +92,7 @@ func ParseExpresssion() avramx.Parser[rune, DiceExpression] {
 		ThenIgnore(match('d')).
 		Then(integer.Assert(
 			func(i int64) bool { return i > 0},
-			func(i int64) error { return fmt.Errorf("%q is less than or equal to zero", i) },
+			func(i int64) error { return fmt.Errorf("%d is less than or equal to zero", i) },
 		)).
 		Map(func(p avramx.Pair[int64, int64]) DiceExpression {
 			return DiceExpression{
@@ -104,7 +104,7 @@ func ParseExpresssion() avramx.Parser[rune, DiceExpression] {
 		TryMap(func(p avramx.Pair[DiceExpression, *KeepExpression]) (DiceExpression, error) {
 			if p.Right != nil {
 				if p.Right.Count > p.Left.Count {
-					return DiceExpression{}, fmt.Errorf("cannot keep %q dice as it's more than the rolled amount %q", p.Right.Count, p.Left.Count)
+					return DiceExpression{}, fmt.Errorf("cannot keep %d dice as it's more than the rolled amount %d", p.Right.Count, p.Left.Count)
 				}
 			}
 

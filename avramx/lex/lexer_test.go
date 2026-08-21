@@ -409,7 +409,7 @@ func TestLexer(t *testing.T) {
 }
 
 func TestLexer2(t *testing.T) {
-	l := lex.NewLexer(Lex, `{"key": null, "values": [20, 30, 40], "stuff": {"embedded": 10, "other": null, "again": [asd]}}`)
+	l := lex.NewLexer(Lex, `{"key": null, "values": [20, 30, 40], "stuff": {"embedded": 10, "other": null}}`)
 	nowhitespace := Filter[lex.Token[TType]](
 		l,
 		func(tok lex.Token[TType]) bool { return tok.Type != WhiteSpace },

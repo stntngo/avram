@@ -212,6 +212,100 @@ func (p Parser[T, A]) SepBy1[B any, S interface{ []A }](seperator Parser[T, B]) 
 	)
 }
 
+// ChainLeft parses one or more occurrences of p separated by op and combines
+// them left-associatively. For example, "a-b-c" is combined as "(a-b)-c".
+func (p Parser[T, A]) ChainLeft[O interface{ ~func(A, A) A }](op Parser[T, O]) Parser[T, A] {
+	return func(s *Scanner[T]) (A, error) {
+		value, err := p(s)
+		if err != nil {
+			var zero A
+			return zero, err
+		}
+
+		for {
+			checkpoint := s.pos
+			combine, err := op(s)
+			if err != nil {
+				s.pos = checkpoint
+				return value, nil
+			}
+
+			right, err := p(s)
+			if err != nil {
+				s.pos = checkpoint
+				return value, nil
+			}
+
+			value = combine(value, right)
+		}
+	}
+}
+
+// ChainRight parses one or more occurrences of p separated by op and combines
+// them right-associatively. For example, "a^b^c" is combined as "a^(b^c)".
+func (p Parser[T, A]) ChainRight[O interface{ ~func(A, A) A }](op Parser[T, O]) Parser[T, A] {
+	var chain Parser[T, A]
+	chain = func(s *Scanner[T]) (A, error) {
+		left, err := p(s)
+		if err != nil {
+			var zero A
+			return zero, err
+		}
+
+		checkpoint := s.pos
+		combine, err := op(s)
+		if err != nil {
+			s.pos = checkpoint
+			return left, nil
+		}
+
+		right, err := chain(s)
+		if err != nil {
+			s.pos = checkpoint
+			return left, nil
+		}
+
+		return combine(left, right), nil
+	}
+
+	return chain
+}
+
+// ChainNone parses either one occurrence of p or two occurrences separated by
+// op. It rejects a second operator, making op non-associative.
+func (p Parser[T, A]) ChainNone[O interface{ ~func(A, A) A }](op Parser[T, O]) Parser[T, A] {
+	return func(s *Scanner[T]) (A, error) {
+		left, err := p(s)
+		if err != nil {
+			var zero A
+			return zero, err
+		}
+
+		checkpoint := s.pos
+		combine, err := op(s)
+		if err != nil {
+			s.pos = checkpoint
+			return left, nil
+		}
+
+		right, err := p(s)
+		if err != nil {
+			var zero A
+			return zero, err
+		}
+
+		checkpoint = s.pos
+		_, chained := op(s)
+		s.pos = checkpoint
+		if chained == nil {
+			var zero A
+			return zero, errors.New("non-associative operator cannot be chained")
+		}
+
+		return combine(left, right), nil
+	}
+}
+
 // Named associates name with p so that parse failures identify the parser by
 // name in their error messages.
 func (p Parser[T, A]) Named(name string) Parser[T, A] {
