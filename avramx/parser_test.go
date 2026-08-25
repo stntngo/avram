@@ -122,6 +122,65 @@ func TestFluentChains(t *testing.T) {
 	}
 }
 
+func TestThenMap(t *testing.T) {
+	t.Run("combines parser results", func(t *testing.T) {
+		parser := avramx.Match(match("hello")).ThenMap(
+			avramx.Match(match("world")),
+			func(left, right token) string {
+				return string(left) + " " + string(right)
+			},
+		)
+
+		parsed, err := parser.Parse(createIterator([]token{"hello", "world"}))
+		require.NoError(t, err)
+		assert.Equal(t, "hello world", parsed)
+	})
+
+	t.Run("does not map when the second parser fails", func(t *testing.T) {
+		sentinel := errors.New("second parser failed")
+		called := false
+		parser := avramx.Match(match("hello")).ThenMap(
+			avramx.Fail[token, token](sentinel),
+			func(left, right token) string {
+				called = true
+				return string(left) + string(right)
+			},
+		)
+
+		_, err := parser.Parse(createIterator([]token{"hello"}))
+		require.ErrorIs(t, err, sentinel)
+		assert.False(t, called)
+	})
+}
+
+func TestThenTryMap(t *testing.T) {
+	t.Run("combines parser results", func(t *testing.T) {
+		parser := avramx.Match(match("hello")).ThenTryMap(
+			avramx.Match(match("world")),
+			func(left, right token) (string, error) {
+				return string(left) + " " + string(right), nil
+			},
+		)
+
+		parsed, err := parser.Parse(createIterator([]token{"hello", "world"}))
+		require.NoError(t, err)
+		assert.Equal(t, "hello world", parsed)
+	})
+
+	t.Run("returns mapper errors", func(t *testing.T) {
+		sentinel := errors.New("mapper failed")
+		parser := avramx.Match(match("hello")).ThenTryMap(
+			avramx.Match(match("world")),
+			func(token, token) (string, error) {
+				return "", sentinel
+			},
+		)
+
+		_, err := parser.Parse(createIterator([]token{"hello", "world"}))
+		require.ErrorIs(t, err, sentinel)
+	})
+}
+
 func TestFluentManyTillBacktracksFailedStop(t *testing.T) {
 	anyToken := avramx.Match(func(token) error { return nil })
 	stop := avramx.Match(match("<")).ThenIgnore(avramx.Match(match(">")))

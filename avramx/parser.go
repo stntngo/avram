@@ -55,6 +55,16 @@ func (p Parser[T, A]) Then[B any, C interface{ Pair[A, B] }](q Parser[T, B]) Par
 	)
 }
 
+// ThenMap runs p followed by q and then executes the function f on the results of both.
+func (p Parser[T, A]) ThenMap[B, C any](q Parser[T, B], f func(A, B) C) Parser[T, C] {
+	return Lift2(func(a A, b B) (C, error) { return f(a, b), nil }, p, q)
+}
+
+// ThenTryMap runs p followed by q and then executes the function f on the results of both.
+func (p Parser[T, A]) ThenTryMap[B, C any](q Parser[T, B], f func(A, B) (C, error)) Parser[T, C] {
+	return Lift2(f, p, q)
+}
+
 // IgnoreThen runs p followed by q, discards the result of p, and returns the
 // result of q.
 func (p Parser[T, A]) IgnoreThen[B any](q Parser[T, B]) Parser[T, B] {
